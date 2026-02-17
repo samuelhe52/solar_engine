@@ -21,9 +21,11 @@ class CounterController extends GetxController {
 
 class HomePage extends StatelessWidget {
   // 使用 Get.put 实例化控制器，并使其在整个应用程序中可用
-  final CounterController controller = Get.put(CounterController());
+  late final CounterController controller;
 
-  const HomePage({super.key});
+  HomePage({super.key}) {
+    controller = Get.put(CounterController());
+  }
 
   @override
   Widget build(BuildContext context) {

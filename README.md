@@ -2,7 +2,7 @@
 
 A galgame engine made by cmach_socket.
 
-Aiming be a cross-platform engine , including desktop and mobile platforms, It also consider of the perform usage.
+Aiming be a cross-platform engine , including desktop and mobile platforms, it also consider of the perform usage.
 
 Powered by flutter/dart.
 
