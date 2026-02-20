@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-class GalleryController extends GetxController {}
+import 'package:solar_engine/controller/GalleryController.dart';
 
 class GalleryBinding extends Bindings {
   @override

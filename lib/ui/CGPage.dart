@@ -3,10 +3,9 @@ import 'package:get/get.dart';
 import 'package:solar_engine/main.dart';
 import 'package:solar_engine/ui/SettingsPage.dart';
 import 'package:solar_engine/ui/SaveLoadPage.dart';
+import 'package:solar_engine/controller/CGController.dart';
 
 const int MaxCharacters = 5;
-
-class CGController extends GetxController {}
 
 class CGBinding extends Bindings {
   @override
@@ -28,7 +27,7 @@ class CGPage extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('lib/assets/images/cg.png'),
+          image: AssetImage('assets/images/cg.png'),
           fit: BoxFit.fill,
         ),
       ),
@@ -38,11 +37,11 @@ class CGPage extends StatelessWidget {
           CharacterRow(
             name: ["wow", "test", "demo", "user", "player"],
             imagePath: [
-              'lib/assets/images/home.png',
-              'lib/assets/images/home.png',
-              'lib/assets/images/home.png',
-              'lib/assets/images/home.png',
-              'lib/assets/images/home.png',
+              'assets/images/home.png',
+              'assets/images/home.png',
+              'assets/images/home.png',
+              'assets/images/home.png',
+              'assets/images/home.png',
             ],
           ),
           DialDock(),

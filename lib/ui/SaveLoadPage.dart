@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-class SaveLoadController extends GetxController {}
+import 'package:solar_engine/controller/SaveLoadController.dart';
 
 class SaveLoadBinding extends Bindings {
   @override

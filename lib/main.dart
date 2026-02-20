@@ -36,7 +36,7 @@ class HomePage extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('lib/assets/images/home.png'),
+            image: AssetImage('assets/images/home.png'),
             fit: BoxFit.fill,
           ),
         ),

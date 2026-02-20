@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sidebarx/sidebarx.dart';
-
-class SettingsController extends GetxController {}
+import 'package:solar_engine/controller/SettingsController.dart';
 
 class SettingsBinding extends Bindings {
   @override
