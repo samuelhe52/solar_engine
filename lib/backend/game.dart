@@ -8,10 +8,25 @@ class GameEngine {
   final String gameName = "";
   final String gameVersion = "";
   final String gameAuthor = "";
+  final settingsFilePath = 'assets/default/settings.json';
+  GameFileManager fileManager = GameFileManager();
   GameEngine() {
     print("nothing to do");
   }
-  void init_game() {}
+  void init_game() {
+    // 读取设置文件
+    File(settingsFilePath)
+        .readAsString()
+        .then((String contents) {
+          Map<String, dynamic> settings = jsonDecode(contents);
+          print("Game Name: ${settings['gameName']}");
+          print("Game Version: ${settings['gameVersion']}");
+          print("Game Author: ${settings['gameAuthor']}");
+        })
+        .catchError((error) {
+          print("Error reading settings file: $error");
+        });
+  }
 }
 
 class GameFileManager {
