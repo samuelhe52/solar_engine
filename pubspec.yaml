@@ -27,3 +27,5 @@ flutter:
     - assets/images/
     - assets/scenario/
     - assets/characters/
+    - assets/default
+    - assets/saves
