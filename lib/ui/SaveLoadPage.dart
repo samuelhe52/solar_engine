@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:solar_engine/controller/CGController.dart';
 import 'package:solar_engine/controller/SaveLoadController.dart';
+import 'package:solar_engine/ui/CGPage.dart';
 
 class SaveLoadBinding extends Bindings {
   @override
@@ -30,52 +32,72 @@ class SaveLoadPage extends StatelessWidget {
       body: Row(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text('Save Slot ${index + 1}'),
-                  subtitle: Text('Saved at 2024-06-01 12:00:00'),
-                  onTap: () async {
-                    final confirmed = await Get.dialog<bool>(
-                      AlertDialog(
-                        title: Text(isSave ? "Save Game" : "Load Game"),
-                        content: Text(
-                          isSave
-                              ? "Do you want to save the game in this slot?"
-                              : "Do you want to load the game from this slot?",
+            child: Obx(
+              () => ListView.builder(
+                itemCount: controller.saveCount.value,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text('Save Slot ${index + 1}'),
+                    subtitle: Text(controller.savedGames[index]),
+                    onTap: () async {
+                      final confirmed = await Get.dialog<bool>(
+                        AlertDialog(
+                          title: Text(isSave ? "Save Game" : "Load Game"),
+                          content: Text(
+                            isSave
+                                ? "Do you want to save the game in this slot?"
+                                : "Do you want to load the game from this slot?",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(result: false),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Get.back(result: true),
+                              child: Text('Confirm'),
+                            ),
+                          ],
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Get.back(result: false),
-                            child: Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Get.back(result: true),
-                            child: Text('Confirm'),
-                          ),
-                        ],
-                      ),
-                      barrierDismissible: true,
-                    );
+                        barrierDismissible: true,
+                      );
 
-                    if (confirmed == true) {
-                      // TODO: save/load logic
-                      Get.back(); // 关闭 SaveLoadPage，返回上一页
-                    }
-                  },
-                );
-              },
+                      if (confirmed == true) {
+                        if (isSave) {
+                          controller.save_game(
+                            "Saved at ${DateTime.now()}",
+                            index + 1,
+                          );
+                        } else {
+                          await controller.load_game(index + 1);
+                        }
+                        if (Get.isRegistered<CGController>()) {
+                          Get.back();
+                        } else {
+                          Get.to(
+                            () => CGPage(
+                              firstLoad: true,
+                            ),
+                            binding: CGBinding(),
+                          ); // 关闭 SaveLoadPage，返回上一页
+                        }
+                      }
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
       ),
-
       floatingActionButton: Visibility(
         visible: isSave,
         child: FloatingActionButton(
           onPressed: () {
-            // TODO : new save slot
+            controller.save_game(
+              "Saved at ${DateTime.now()}",
+              controller.saveCount.value + 1,
+            );
           },
           child: Icon(Icons.add),
         ),

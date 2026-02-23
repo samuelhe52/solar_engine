@@ -1,10 +1,10 @@
 name: solar_engine
-description: "A new Flutter project."
+description: "A galgame engine made by cmach_socket.Aiming be a cross-platform engine , including desktop and mobile platforms, it also consider of the perform usage.Powered by flutter/dart."
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0
 
 environment:
-  sdk: ^3.10.1
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -12,13 +12,18 @@ dependencies:
   get:
   sidebarx:
   path_provider:
-
+  logging:
+  path:
+  animated_text_kit: 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: 
+  test:
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/scenario/
+    - assets/characters/

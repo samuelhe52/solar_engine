@@ -14,7 +14,7 @@ class SettingsPage extends StatelessWidget {
   // 使用 Get.put 实例化控制器，并使其在整个应用程序中可用
   late final SettingsController controller;
   final _controller = SidebarXController(selectedIndex: 0);
-
+  final double sidebarWidthRatio = 0.2;
   SettingsPage({super.key}) {
     controller = Get.find<SettingsController>();
   }
@@ -34,7 +34,7 @@ class SettingsPage extends StatelessWidget {
         children: [
           SidebarX(
             extendedTheme: SidebarXTheme(
-              width: screenWidth * 0.1,
+              width: screenWidth * sidebarWidthRatio,
               margin: EdgeInsets.only(right: 10),
             ),
             headerBuilder: (context, extended) {
