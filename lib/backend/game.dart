@@ -59,11 +59,13 @@ class TextUnion {
 class GameEngine {
   final settingsAssetPath = 'assets/default/settings.json';
   final globalSaveAssetPath = 'assets/default/globe_save.json';
+  final defaultSaveAssetPath = 'assets/default/save.json';
   final scenario = "text.sce";
   late final String savePath;
   late final String rootPath;
   late final String globalSavePath;
   late final String settingsPath;
+  late final String defaultSavePath;
   Map<String, dynamic> settings = {};
   Map<String, dynamic> gameState = {};
   Map<String, dynamic> globeState = {};
@@ -72,8 +74,8 @@ class GameEngine {
   List<TextUnion> currentScenario = [];
 
   GameEngine();
-  get totalSaves => globeState["SaveCount"];
-  get scenarioPath => gameState["scenarioPath"];
+  int get totalSaves => globeState["SaveCount"];
+  String get scenarioPath => gameState["scenarioPath"];
   int get gameIndex => gameState["index"];
   set gameDescription(String description) =>
       gameState["description"] = description;
@@ -109,8 +111,10 @@ class GameEngine {
       }
       globalSavePath = path.join(savePath, "globe_save.json");
       settingsPath = path.join(rootPath, "settings.json");
+      defaultSavePath = path.join(savePath, "default_save.json");
       await fileManager.check_and_copy(globalSaveAssetPath, globalSavePath);
       await fileManager.check_and_copy(settingsAssetPath, settingsPath);
+      await fileManager.check_and_copy(defaultSaveAssetPath, defaultSavePath);
     } catch (e) {
       logger.severe("Environment check failed: $e");
     }
@@ -141,14 +145,12 @@ class GameEngine {
     gameState = await fileManager.read_json_from_file(
       await fileManager.safe_read_file(savePath),
     );
-    final scenarioFile = await fileManager.safe_read_file(
-      path.join(gameState["scenarioPath"], scenario),
-    );
     logger.info(
       "Game loaded successfully from $savePath, scenario: ${gameState['scenarioPath']}",
     );
-    savePath = gameState["scenarioPath"];
-    return await fileManager.read_all_text_from_file(scenarioFile);
+    return await rootBundle.loadString(
+      path.join(gameState["scenarioPath"], scenario),
+    );
   }
 
   List<TextUnion> explain_scenario(String scenarioText) {
