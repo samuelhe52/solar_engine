@@ -17,6 +17,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // 锁定为横屏 （左右两个方向）
   if (isMobileDevice()) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
