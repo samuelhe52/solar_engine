@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:logging/logging.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 enum CommandType { text, image }
 
@@ -55,8 +57,13 @@ class TextUnion {
 }
 
 class GameEngine {
-  final settingsFilePath = 'assets/default/settings.json';
+  final settingsAssetPath = 'assets/default/settings.json';
+  final globalSaveAssetPath = 'assets/default/globe_save.json';
   final scenario = "text.sce";
+  late final String savePath;
+  late final String rootPath;
+  late final String globalSavePath;
+  late final String settingsPath;
   Map<String, dynamic> settings = {};
   Map<String, dynamic> gameState = {};
   Map<String, dynamic> globeState = {};
@@ -74,12 +81,59 @@ class GameEngine {
   set setSavesCount(int count) => globeState["SaveCount"] = count;
   Future<void> initialize() async {
     logger.info("Initializing game engine");
+    await environment_check();
     settings = await fileManager.read_json_from_file(
-      await fileManager.safe_read_file(settingsFilePath),
+      await fileManager.safe_read_file(settingsPath),
     );
     globeState = await fileManager.read_json_from_file(
-      await fileManager.safe_read_file("assets/default/globe_save.json"),
+      await fileManager.safe_read_file(globalSavePath),
     );
+  }
+
+  String saveSlotPath(int saveSlot) =>
+      path.join(savePath, "save$saveSlot.json");
+  Future<void> environment_check() async {
+    logger.info("Performing environment check");
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      logger.info("Documents directory: ${directory.path}");
+      rootPath = path.join(directory.path, "solar_engine");
+      if (!await fileManager.directory_exists(rootPath)) {
+        await Directory(rootPath).create(recursive: true);
+      }
+      savePath = path.join(rootPath, "saves");
+
+      if (!await fileManager.directory_exists(savePath)) {
+        await Directory(savePath).create(recursive: true);
+      }
+      globalSavePath = path.join(savePath, "globe_save.json");
+      settingsPath = path.join(rootPath, "settings.json");
+      await fileManager.check_and_copy(globalSaveAssetPath, globalSavePath);
+      await fileManager.check_and_copy(settingsAssetPath, settingsPath);
+    } catch (e) {
+      logger.severe("Environment check failed: $e");
+    }
+  }
+
+  Future<List<String>> get_all_save_decriptions() async {
+    List<String> descriptions = [];
+    for (int i = 1; i <= totalSaves; i++) {
+      final filePath = saveSlotPath(i);
+      if (!await fileManager.file_exists_and_not_empty(filePath)) {
+        setSavesCount = i - 1; // 更新保存游戏数量
+        logger
+            .warning("Save slot $i does not exist or is empty. Stopping scan.");
+        break;
+      }
+      descriptions.add(
+        (await fileManager.read_json_from_file(
+          await fileManager.safe_read_file(filePath),
+        ))["description"]
+            .toString(),
+      );
+    }
+    return descriptions;
   }
 
   Future<String> load_game_from_save(String savePath) async {
@@ -144,26 +198,73 @@ class GameEngine {
     return results;
   }
 
-  void save_game_to_file(String time, String description, int saveSlot) async {
-    gameState["description"] = description;
+  Future<void> save_game_to_file(String time, int saveSlot) async {
+    gameState["description"] = "$time\n${currentScenario[gameIndex].text}";
     fileManager.write_json_to_file(
-      await fileManager.safe_read_file("assets/saves/save$saveSlot.json"),
+      await fileManager.safe_read_file(saveSlotPath(saveSlot)),
       gameState,
     );
     logger.info(
-      "Game saved successfully to assets/saves/save$saveSlot.json, scenario: ${gameState['scenarioPath']}",
+      "Game saved successfully to ${path.join(savePath, "save$saveSlot.json")}, scenario: ${gameState['scenarioPath']}",
+    );
+    fileManager.write_json_to_file(
+      await fileManager.safe_read_file(globalSavePath),
+      globeState,
     );
   }
 }
 
 class GameFileManager {
+  Future<bool> directory_exists(String path) async {
+    try {
+      final directory = Directory(path);
+      return directory.existsSync();
+    } catch (e) {
+      logger.severe("Error checking directory existence: $e");
+      return false;
+    }
+  }
+
+  Future<bool> file_exists_and_not_empty(String path) async {
+    try {
+      final file = File(path);
+      return file.existsSync() && file.lengthSync() > 0;
+    } catch (e) {
+      logger.severe("Error checking file existence: $e");
+      return false;
+    }
+  }
+
+  Future<void> check_and_copy(String assetPath, String targetPath) async {
+    try {
+      //final assetPath = path.join(directory.path, "globe_state.json");
+      if (!await file_exists_and_not_empty(targetPath)) {
+        var file = await safe_read_file(targetPath);
+        final assetData = await rootBundle.loadString(assetPath);
+        file.writeAsStringSync(assetData);
+      }
+    } catch (e) {
+      logger.severe("Error copying asset: $e");
+      rethrow;
+    }
+  }
+
+  Future<String> read_asset_as_string(String assetPath) async {
+    try {
+      return await rootBundle.loadString(assetPath);
+    } catch (e) {
+      logger.severe("Error reading asset as string: $e");
+      rethrow;
+    }
+  }
+
   Future<File> safe_read_file(String path) async {
     try {
       final file = File(path);
       if (await file.exists()) {
         return file;
       } else {
-        throw Exception("File not found: $path");
+        return await file.create();
       }
     } catch (e) {
       logger.severe("Error reading file: $e");

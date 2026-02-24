@@ -5,6 +5,14 @@ allprojects {
     }
 }
 
+subprojects {
+    afterEvaluate {
+        (extensions.findByName("android") as? com.android.build.gradle.LibraryExtension)?.let {
+            it.buildToolsVersion = "36.1.0"
+        }
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")

@@ -38,7 +38,7 @@ class SaveLoadPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   return ListTile(
                     title: Text('Save Slot ${index + 1}'),
-                    subtitle: Text(controller.savedGames[index]),
+                    subtitle: Text(controller.loadedDescriptions[index]),
                     onTap: () async {
                       final confirmed = await Get.dialog<bool>(
                         AlertDialog(
@@ -65,7 +65,6 @@ class SaveLoadPage extends StatelessWidget {
                       if (confirmed == true) {
                         if (isSave) {
                           controller.save_game(
-                            "Saved at ${DateTime.now()}",
                             index + 1,
                           );
                         } else {
@@ -95,9 +94,8 @@ class SaveLoadPage extends StatelessWidget {
         child: FloatingActionButton(
           onPressed: () {
             controller.save_game(
-              "Saved at ${DateTime.now()}",
               controller.saveCount.value + 1,
-            );
+            ); // 刷新保存游戏列表
           },
           child: Icon(Icons.add),
         ),

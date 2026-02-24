@@ -11,8 +11,8 @@ dependencies:
     sdk: flutter
   get:
   sidebarx:
-  path_provider:
   logging:
+  path_provider: 
   path:
   animated_text_kit: 
 dev_dependencies:
@@ -27,3 +27,5 @@ flutter:
     - assets/images/
     - assets/scenario/
     - assets/characters/
+    - assets/default/
+    - assets/saves/
