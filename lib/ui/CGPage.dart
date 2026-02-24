@@ -107,7 +107,11 @@ class DialDock extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     controller.charactersName.value,
-                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                 ),
               ),
@@ -125,8 +129,11 @@ class DialDock extends StatelessWidget {
                         TyperAnimatedText(
                           controller.currentScenario.value.text,
                           speed: Duration(milliseconds: 10),
-                          textStyle:
-                              TextStyle(color: Colors.white, fontSize: 18),
+                          textStyle: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            decoration: TextDecoration.none,
+                          ),
                         )
                       ],
                     ),
@@ -210,7 +217,7 @@ class NavigationContainer extends StatelessWidget {
                     ),
                     IconButton(
                       //return to home page
-                      onPressed: () => Get.offAll(() => HomePage()),
+                      onPressed: () => Get.offAll(() => MainPage()),
                       icon: Icon(Icons.home),
                       color: Colors.white,
                     ),

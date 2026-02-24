@@ -21,12 +21,42 @@ void main() {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]).then((_) {
-      runApp(GetMaterialApp(home: HomePage()));
+      runApp(buildApp());
     });
   } else {
     // 非移动端直接运行，不锁定方向
-    runApp(GetMaterialApp(home: HomePage()));
+    runApp(buildApp());
   }
+}
+
+Widget buildApp() {
+  return GetMaterialApp(
+    home: MainPage(),
+    builder: (context, child) {
+      if (!isMobileDevice()) {
+        return child ?? const SizedBox.shrink();
+      }
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          final maxHeight = constraints.maxHeight;
+          var targetWidth = maxWidth;
+          var targetHeight = targetWidth * 9 / 16;
+          if (targetHeight > maxHeight) {
+            targetHeight = maxHeight;
+            targetWidth = targetHeight * 16 / 9;
+          }
+          return Center(
+            child: SizedBox(
+              width: targetWidth,
+              height: targetHeight,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 bool isMobileDevice() {
@@ -35,31 +65,9 @@ bool isMobileDevice() {
       defaultTargetPlatform == TargetPlatform.android;
 }
 
-class HomePage extends StatelessWidget {
-  // 使用 Get.put 实例化控制器，并使其在整个应用程序中可用
+class MainPage extends StatelessWidget {
   late final HomePageController controller;
-
-  HomePage({super.key}) {
-    if (Get.isRegistered<HomePageController>()) {
-      controller = Get.find<HomePageController>();
-    } else {
-      controller = Get.put(HomePageController());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return isMobileDevice()
-        // 移动端：强制 16:9 内容区域，居中显示
-        ? AspectRatio(aspectRatio: 16 / 9, child: mainPage())
-        // 非移动端：全屏显示
-        : mainPage();
-  }
-}
-
-class mainPage extends StatelessWidget {
-  late final HomePageController controller;
-  mainPage({super.key}) {
+  MainPage({super.key}) {
     if (Get.isRegistered<HomePageController>()) {
       controller = Get.find<HomePageController>();
     } else {
@@ -69,7 +77,6 @@ class mainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('solar galgame engine')),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
