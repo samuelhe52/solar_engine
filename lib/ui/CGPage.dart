@@ -46,7 +46,10 @@ class CGPage extends StatelessWidget {
             ),
           ),
           CharacterRow(),
-          DialDock(),
+          Obx(() => Offstage(
+                offstage: controller.barIsHiden.value,
+                child: DialDock(),
+              )),
           NavigationContainer(),
         ],
       ),
@@ -151,6 +154,15 @@ class NavigationContainer extends StatelessWidget {
   NavigationContainer({super.key}) {
     controller = Get.find<CGController>();
   }
+  dynamic switch_hide_method(bool isMobile) {
+    return isMobile
+        ? () {
+            controller.stopFastForward();
+            controller.swith_hide_status();
+          }
+        : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -164,72 +176,77 @@ class NavigationContainer extends StatelessWidget {
         onLongPressEnd: (_) {
           controller.stopFastForward();
         },
-        child: Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Obx(
-                      () => IconButton(
-                        onPressed: () => controller.isFastForwarding.value
-                            ? controller.stopFastForward()
-                            : controller.startFastForward(),
-                        icon: Icon(controller.isFastForwarding.value
-                            ? Icons.pause
-                            : Icons.skip_next),
-                        color: Colors.white,
-                      ),
+        // Use correct named gesture callbacks based on device type
+        onDoubleTap: switch_hide_method(isMobileDevice()),
+        onSecondaryTap: switch_hide_method(!isMobileDevice()),
+        child: Obx(() => Offstage(
+            offstage: controller.barIsHiden.value,
+            child: Align(
+                alignment: Alignment.bottomCenter,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        //Obx(
+                        IconButton(
+                          onPressed: () => controller.isFastForwarding.value
+                              ? controller.stopFastForward()
+                              : controller.startFastForward(),
+                          icon: Icon(controller.isFastForwarding.value
+                              ? Icons.pause
+                              : Icons.skip_next),
+                          color: Colors.white,
+                        ),
+                        //),
+                        IconButton(
+                          //TODO: save page
+                          onPressed: () => Get.to(
+                            () => SaveLoadPage(isSave: true),
+                            binding: SaveLoadBinding(),
+                          ),
+                          icon: Icon(Icons.save),
+                          color: Colors.white,
+                        ),
+                        IconButton(
+                          //TODO: load page
+                          onPressed: () => Get.to(
+                            () => SaveLoadPage(isSave: false),
+                            binding: SaveLoadBinding(),
+                          ),
+                          icon: Icon(Icons.file_upload),
+                          color: Colors.white,
+                        ),
+                        IconButton(
+                          //TODO: volume control
+                          onPressed: () {},
+                          icon: Icon(Icons.volume_up),
+                          color: Colors.white,
+                        ),
+                        IconButton(
+                          //TODO: settings page
+                          onPressed: () => Get.to(
+                            () => SettingsPage(),
+                            binding: SettingsBinding(),
+                          ),
+                          icon: Icon(Icons.settings),
+                          color: Colors.white,
+                        ),
+                        IconButton(
+                          //return to home page
+                          onPressed: () => Get.offAll(() => MainPage()),
+                          icon: Icon(Icons.home),
+                          color: Colors.white,
+                        ),
+                        IconButton(
+                          // TODO: hide/show dilaogue dock
+                          onPressed: () {},
+                          icon: Icon(Icons.hide_image),
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      //TODO: save page
-                      onPressed: () => Get.to(
-                        () => SaveLoadPage(isSave: true),
-                        binding: SaveLoadBinding(),
-                      ),
-                      icon: Icon(Icons.save),
-                      color: Colors.white,
-                    ),
-                    IconButton(
-                      //TODO: load page
-                      onPressed: () => Get.to(
-                        () => SaveLoadPage(isSave: false),
-                        binding: SaveLoadBinding(),
-                      ),
-                      icon: Icon(Icons.file_upload),
-                      color: Colors.white,
-                    ),
-                    IconButton(
-                      //TODO: volume control
-                      onPressed: () {},
-                      icon: Icon(Icons.volume_up),
-                      color: Colors.white,
-                    ),
-                    IconButton(
-                      //TODO: settings page
-                      onPressed: () => Get.to(
-                        () => SettingsPage(),
-                        binding: SettingsBinding(),
-                      ),
-                      icon: Icon(Icons.settings),
-                      color: Colors.white,
-                    ),
-                    IconButton(
-                      //return to home page
-                      onPressed: () => Get.offAll(() => MainPage()),
-                      icon: Icon(Icons.home),
-                      color: Colors.white,
-                    ),
-                    IconButton(
-                      // TODO: hide/show dilaogue dock
-                      onPressed: () {},
-                      icon: Icon(Icons.hide_image),
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            )));
+                  ),
+                )))));
   }
 }

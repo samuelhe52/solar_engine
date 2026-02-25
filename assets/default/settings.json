@@ -1,5 +1,7 @@
 {
     "gameName": "Solar Engine",
-    "gameVersion": "0.1.0",
-    "gameAuthor": "cmach_socket"
+    "gameVersion": "0.3.1",
+    "gameAuthor": "cmach_socket",
+    "DockHeight" : 0.25,
+    "CharacterRowHeight" : 0.25
 }

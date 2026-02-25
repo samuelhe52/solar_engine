@@ -5,6 +5,7 @@ import 'package:solar_engine/backend/game.dart';
 
 class CGController extends GetxController {
   GameEngine _gameEngine = Get.find<GameEngine>();
+
   Timer? _fastForwardTimer;
   var _isAdvancing = false;
   var isFastForwarding = false.obs;
@@ -14,6 +15,7 @@ class CGController extends GetxController {
   var charactersName = "".obs;
   var backgroundImagePath = "".obs;
   var scenarioPath = "";
+  var barIsHiden = false.obs;
   CGController() {
     logger.info("Initializing CGController");
     currentScenarios = _gameEngine.currentScenario;
@@ -88,6 +90,10 @@ class CGController extends GetxController {
         break;
       }
     }
+  }
+
+  void swith_hide_status() {
+    barIsHiden.value = !barIsHiden.value;
   }
 
   @override
