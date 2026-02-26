@@ -51,7 +51,6 @@ class SettingsPage extends StatelessWidget {
               SidebarXItem(icon: Icons.audio_file, label: 'Audio'),
             ],
           ),
-
           Expanded(
             child: AnimatedBuilder(
               animation: _controller,
@@ -96,6 +95,8 @@ class GeneralSettingsPage extends StatelessWidget {
 
 class DisplaySettingsPage extends StatelessWidget {
   late final SettingsController controller;
+  final dialogDockFormKey = GlobalKey<FormState>();
+  final _characterRowFormKey = GlobalKey<FormState>();
   DisplaySettingsPage({super.key}) {
     controller = Get.find<SettingsController>();
   }
@@ -103,7 +104,58 @@ class DisplaySettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[200],
-      child: Center(child: Text('Display Settings')),
+      child: Column(
+        children: [
+          Expanded(
+              child: Form(
+            key: dialogDockFormKey,
+            child: TextFormField(
+              autofocus: true,
+              initialValue: controller.dialogDockHeight.value.toString(),
+              decoration: InputDecoration(
+                labelText: 'Dialog Dock Height (Relative to Screen Height)',
+                hintText: 'Enter a value between 0 and 1',
+              ),
+              keyboardType: TextInputType.number,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              validator: (value) {
+                final parsedValue = double.tryParse(value ?? '');
+                return controller.CheckHeightText(parsedValue)
+                    ? null
+                    : 'Please enter a valid number between 0 and 1';
+              },
+              onFieldSubmitted: (value) {
+                final parsedValue = double.tryParse(value);
+                controller.updateDialogDockHeight(parsedValue);
+              },
+            ),
+          )),
+          Expanded(
+              child: Form(
+            key: _characterRowFormKey,
+            child: TextFormField(
+              autofocus: true,
+              initialValue: controller.characterRowHeight.value.toString(),
+              decoration: InputDecoration(
+                labelText: 'Character Row Height (Relative to Screen Height)',
+                hintText: 'Enter a value between 0 and 1',
+              ),
+              keyboardType: TextInputType.number,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              validator: (value) {
+                final parsedValue = double.tryParse(value ?? '');
+                return controller.CheckHeightText(parsedValue)
+                    ? null
+                    : 'Please enter a valid number between 0 and 1';
+              },
+              onFieldSubmitted: (value) {
+                final parsedValue = double.tryParse(value);
+                controller.updateCharacterRowHeight(parsedValue);
+              },
+            ),
+          )),
+        ],
+      ),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:solar_engine/ui/SettingsPage.dart';
 import 'package:solar_engine/ui/SaveLoadPage.dart';
 import 'package:solar_engine/controller/CGController.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:solar_engine/controller/SettingsController.dart';
 
 const int MaxCharacters = 5;
 
@@ -12,6 +13,7 @@ class CGBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<CGController>(() => CGController());
+    Get.lazyPut<SettingsController>(() => SettingsController());
   }
 }
 
@@ -19,7 +21,7 @@ class CGPage extends StatelessWidget {
   // 使用 Get.put 实例化控制器，并使其在整个应用程序中可用
   late final CGController controller;
   final bool firstLoad;
-
+  final String defaultBackgroundImagePath = "assets/images/default_cg.png";
   CGPage({super.key, required this.firstLoad}) {
     controller = Get.find<CGController>();
     if (firstLoad) {
@@ -38,7 +40,7 @@ class CGPage extends StatelessWidget {
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(controller.backgroundImagePath.value.isEmpty
-                      ? "assets/images/default_cg.png"
+                      ? defaultBackgroundImagePath
                       : controller.backgroundImagePath.value),
                   fit: BoxFit.fill,
                 ),
@@ -59,14 +61,17 @@ class CGPage extends StatelessWidget {
 
 class CharacterRow extends StatelessWidget {
   late final CGController controller;
+  late final SettingsController settingsController;
+
   CharacterRow({super.key}) {
     controller = Get.find<CGController>();
+    settingsController = Get.find<SettingsController>();
   }
 
   @override
   Widget build(BuildContext context) {
     return FractionallySizedBox(
-      heightFactor: 0.45, // 父容器高度的 40%
+      heightFactor: settingsController.characterRowHeight.value,
       alignment: Alignment.bottomLeft,
       child: Row(
         spacing: 5,
@@ -90,62 +95,62 @@ class CharacterRow extends StatelessWidget {
 
 class DialDock extends StatelessWidget {
   late final CGController controller;
+  late final SettingsController settingsController;
   DialDock({super.key}) {
     controller = Get.find<CGController>();
+    settingsController = Get.find<SettingsController>();
   }
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      heightFactor: 0.25, // 父容器高度的 30%
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        width: double.infinity,
-        color: Colors.black.withOpacity(0.5),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Obx(
-                () => Container(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    controller.charactersName.value,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      decoration: TextDecoration.none,
+    return Obx(() => FractionallySizedBox(
+          heightFactor: settingsController.dialogDockHeight.value, // 父容器高度的 30%
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            width: double.infinity,
+            color: Colors.black.withOpacity(0.5),
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      controller.charactersName.value,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        decoration: TextDecoration.none,
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Expanded(
+                    flex: 6,
+                    child: Container(
+                      alignment: Alignment.topLeft,
+                      child: Obx(
+                        () => AnimatedTextKit(
+                          key: ValueKey(controller.currentScenario.value.text),
+                          displayFullTextOnTap: true,
+                          isRepeatingAnimation: false,
+                          animatedTexts: [
+                            TyperAnimatedText(
+                              controller.currentScenario.value.text,
+                              speed: Duration(milliseconds: 10),
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                decoration: TextDecoration.none,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    )),
+              ],
             ),
-            Expanded(
-                flex: 6,
-                child: Container(
-                  alignment: Alignment.topLeft,
-                  child: Obx(
-                    () => AnimatedTextKit(
-                      key: ValueKey(controller.currentScenario.value.text),
-                      displayFullTextOnTap: true,
-                      isRepeatingAnimation: false,
-                      animatedTexts: [
-                        TyperAnimatedText(
-                          controller.currentScenario.value.text,
-                          speed: Duration(milliseconds: 10),
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            decoration: TextDecoration.none,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                )),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
 }
 

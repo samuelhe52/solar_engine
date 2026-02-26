@@ -3,5 +3,5 @@
     "gameVersion": "0.3.1",
     "gameAuthor": "cmach_socket",
     "DockHeight" : 0.25,
-    "CharacterRowHeight" : 0.25
+    "CharacterRowHeight" : 0.45
 }

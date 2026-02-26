@@ -214,6 +214,14 @@ class GameEngine {
       globeState,
     );
   }
+
+  Future<void> save_settings() async {
+    fileManager.write_json_to_file(
+      await fileManager.safe_read_file(settingsPath),
+      settings,
+    );
+    logger.info("Settings saved successfully to $settingsPath");
+  }
 }
 
 class GameFileManager {

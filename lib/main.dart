@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:solar_engine/controller/SettingsController.dart';
 import 'ui/CGPage.dart';
 import 'ui/GalleryPage.dart';
 import 'ui/SettingsPage.dart';
