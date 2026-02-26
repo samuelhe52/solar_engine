@@ -21,7 +21,7 @@ class SaveLoadController extends GetxController {
   Future<void> load_game(int saveSlot) async {
     // 这里应该实现加载游戏的逻辑
     // 例如，读取指定路径的保存游戏文件，并将其内容加载到游戏引擎中
-    _gameEngine.currentScenario = _gameEngine.explain_scenario(
+    _gameEngine.currentScenario = await _gameEngine.explain_scenario(
       await _gameEngine.load_game_from_save(_gameEngine.saveSlotPath(saveSlot)),
     );
   }

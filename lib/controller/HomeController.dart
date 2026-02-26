@@ -14,7 +14,7 @@ class HomePageController extends GetxController {
 
   Future<void> load_default_scenario() async {
     // 加载默认场景的逻辑
-    _gameEngine.currentScenario = _gameEngine.explain_scenario(
+    _gameEngine.currentScenario = await _gameEngine.explain_scenario(
       await _gameEngine.load_game_from_save(_gameEngine.defaultSavePath),
     );
   }

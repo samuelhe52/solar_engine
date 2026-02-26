@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-enum CommandType { text, image }
+enum CommandType { text, image, audio }
 
 const int MaxCharacters = 5;
 final logger = Logger('App');
@@ -30,19 +30,20 @@ void setupLogging() {
 }
 
 class TextUnion {
-  int type = -1; // 0: text, 1: image
+  int type = -1; // 0: text, 1: image , 2 : audio
   String text = "";
+  String charactersAudioPath = "";
+
   List<String> characters = ["", "", "", "", ""];
-  String imagePath = "";
+  String resourcePath = "";
   List<String> actions = ["", "", "", "", ""];
   List<String> charactersPath = ["", "", "", "", ""];
-
   TextUnion();
   TextUnion.withParams(
     this.type, {
     this.text = "",
     List<String>? characters,
-    this.imagePath = "",
+    this.resourcePath = "",
     List<String>? actions,
   })  : characters = characters ?? [],
         actions = actions ?? [];
@@ -153,7 +154,7 @@ class GameEngine {
     );
   }
 
-  List<TextUnion> explain_scenario(String scenarioText) {
+  Future<List<TextUnion>> explain_scenario(String scenarioText) async {
     logger.info("Explaining scenario text:\n$scenarioText");
     final commands = scenarioText.split("\n");
     List<TextUnion> results = [];
@@ -166,8 +167,11 @@ class GameEngine {
         final arg = parts[1].trim();
         if (cmd == "background") {
           results.add(
-            TextUnion.withParams(CommandType.image.index, imagePath: arg),
+            TextUnion.withParams(CommandType.image.index, resourcePath: arg),
           );
+        } else if (cmd == "audio") {
+          results.add(
+              TextUnion.withParams(CommandType.audio.index, resourcePath: arg));
         } else if (cmd.startsWith("`") && cmd.endsWith("`")) {
           // TODO explain values , other commands
         } else {
@@ -185,6 +189,13 @@ class GameEngine {
                   ), // remove parentheses
             );
           });
+          final audioPath =
+              path.join(scenarioPath, "${results.length + 1}.mp3");
+          textUnion.charactersAudioPath =
+              await fileManager.file_exists_and_not_empty(audioPath)
+                  ? audioPath
+                  : "";
+
           textUnion.build_character_paths();
           results.add(textUnion);
           //results.add(TextUnion.withParams(0, text: arg, character: cmd));

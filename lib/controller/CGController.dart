@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:solar_engine/backend/game.dart';
 
 class CGController extends GetxController {
@@ -14,8 +15,11 @@ class CGController extends GetxController {
   var currentScenario = Rx<TextUnion>(TextUnion());
   var charactersName = "".obs;
   var backgroundImagePath = "".obs;
+  var audioPath = "";
   var scenarioPath = "";
   var barIsHiden = false.obs;
+  final AudioPlayer characterPlayer = AudioPlayer();
+  final AudioPlayer bgmPlayer = AudioPlayer();
   CGController() {
     logger.info("Initializing CGController");
     currentScenarios = _gameEngine.currentScenario;
@@ -70,13 +74,17 @@ class CGController extends GetxController {
     currentScenario.value = currentScenarios[currentIndex.value];
     if (currentScenario.value.type == CommandType.image.index) {
       backgroundImagePath.value =
-          scenarioPath + currentScenario.value.imagePath;
-      logger
-          .info("Updated background image path: ${backgroundImagePath.value}");
+          scenarioPath + currentScenario.value.resourcePath;
+      await next();
+    } else if (currentScenario.value.type == CommandType.audio.index) {
+      audioPath = scenarioPath + currentScenario.value.resourcePath;
+      play_bgm(audioPath);
+
       await next();
     } else {
       _gameEngine.gameIndex = currentIndex.value;
       charactersName.value = currentScenario.value.characters.join(", ");
+      play_character_audio(currentScenario.value.charactersAudioPath);
     }
   }
 
@@ -84,12 +92,27 @@ class CGController extends GetxController {
     for (int i = currentIndex.value; i >= 0; i--) {
       if (currentScenarios[i].type == CommandType.image.index) {
         backgroundImagePath.value =
-            scenarioPath + currentScenarios[i].imagePath;
-        logger.info(
-            "Loaded initial background image: ${backgroundImagePath.value}");
+            scenarioPath + currentScenarios[i].resourcePath;
+        break;
+      } else if (currentScenarios[i].type == CommandType.audio.index) {
+        audioPath = scenarioPath + currentScenarios[i].resourcePath;
+        play_bgm(audioPath);
         break;
       }
     }
+  }
+
+  Future<void> play_bgm(String bgmPath) async {
+    bgmPlayer.stop();
+    await bgmPlayer.setSource(AssetSource(bgmPath));
+    // 可以设置为循环播放
+    bgmPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
+  Future<void> play_character_audio(String path) async {
+    if (path.isEmpty) return;
+    await characterPlayer.stop();
+    await characterPlayer.play(AssetSource(path));
   }
 
   void swith_hide_status() {
