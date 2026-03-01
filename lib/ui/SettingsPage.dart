@@ -93,9 +93,36 @@ class GeneralSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey[200],
-      child: Center(child: Text('General Settings')),
-    );
+        color: Colors.grey[200],
+        child: Column(
+          children: [
+            TextButton(
+              child: Text('Reset All Settings'),
+              onPressed: () {
+                Get.dialog(
+                  AlertDialog(
+                    title: Text('Reset Settings'),
+                    content:
+                        Text('Are you sure you want to reset all settings?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Get.back(),
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          controller.reset_settings();
+                          Get.back();
+                        },
+                        child: Text('Confirm'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            )
+          ],
+        ));
   }
 }
 

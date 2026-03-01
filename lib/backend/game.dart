@@ -226,6 +226,12 @@ class GameEngine {
     );
   }
 
+  Future<void> load_default_settings() async {
+    final assetData = await rootBundle.loadString(settingsAssetPath);
+    final defaultSettings = jsonDecode(assetData);
+    settings = defaultSettings;
+  }
+
   Future<void> save_settings() async {
     fileManager.write_json_to_file(
       await fileManager.safe_read_file(settingsPath),

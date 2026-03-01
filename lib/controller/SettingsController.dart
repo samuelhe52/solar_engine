@@ -8,11 +8,16 @@ class SettingsController extends GetxController {
   late final GameEngine _gameEngine;
   SettingsController() {
     _gameEngine = Get.find<GameEngine>();
+    initialize_obx_var();
+    logger.info("Initializing SettingsController");
+  }
+
+  void initialize_obx_var() {
     dialogDockHeight.value = _gameEngine.settings['DockHeight'];
     characterRowHeight.value = _gameEngine.settings['CharacterRowHeight'];
     textAnimationSpeed.value = _gameEngine.settings['TextAnimationSpeed'];
-    logger.info("Initializing SettingsController");
   }
+
   bool CheckHeightText(double? value) {
     if (value != null && value > 0 && value < 1) return true;
     return false;
@@ -41,5 +46,11 @@ class SettingsController extends GetxController {
 
   Future<void> save_settings() async {
     _gameEngine.save_settings();
+  }
+
+  Future<void> reset_settings() async {
+    await _gameEngine.load_default_settings();
+    _gameEngine.save_settings();
+    initialize_obx_var();
   }
 }
