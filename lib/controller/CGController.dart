@@ -8,6 +8,7 @@ class CGController extends GetxController {
   final GameEngine _gameEngine = Get.find<GameEngine>();
 
   Timer? _fastForwardTimer;
+  Timer? _autoModeTimer;
   var _isAdvancing = false;
   var isFastForwarding = false.obs;
   var currentIndex = 0.obs;
@@ -17,7 +18,10 @@ class CGController extends GetxController {
   var backgroundImagePath = "".obs;
   var audioPath = "";
   var scenarioPath = "";
+  var isAutoMode = false.obs;
   var barIsHiden = false.obs;
+  var isMute = false.obs;
+  var is_text_animating = false;
   final AudioPlayer characterPlayer = AudioPlayer();
   final AudioPlayer bgmPlayer = AudioPlayer();
   CGController() {
@@ -25,6 +29,13 @@ class CGController extends GetxController {
     currentScenarios = _gameEngine.currentScenario;
     currentIndex.value = _gameEngine.gameIndex;
     scenarioPath = _gameEngine.scenarioPath;
+    _autoModeTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (isAutoMode.value) {
+        if (!is_text_animating && !await is_character_audio_playing()) {
+          next();
+        }
+      }
+    });
     updateStates();
   }
   Future<void> next() async {
@@ -39,6 +50,7 @@ class CGController extends GetxController {
 
   void startFastForward(
       {Duration interval = const Duration(milliseconds: 120)}) {
+    stop_auto_mode();
     if (_fastForwardTimer?.isActive ?? false) {
       return;
     }
@@ -46,6 +58,10 @@ class CGController extends GetxController {
     _fastForwardTimer = Timer.periodic(interval, (_) {
       _advanceStep();
     });
+  }
+
+  void stop_auto_mode() {
+    if (isAutoMode.value) switch_auto_mode();
   }
 
   void stopFastForward() {
@@ -85,6 +101,7 @@ class CGController extends GetxController {
       _gameEngine.gameIndex = currentIndex.value;
       charactersName.value = currentScenario.value.characters.join(", ");
       play_character_audio(currentScenario.value.charactersAudioPath);
+      is_text_animating = true;
     }
   }
 
@@ -115,13 +132,48 @@ class CGController extends GetxController {
     await characterPlayer.play(AssetSource(path));
   }
 
-  void swith_hide_status() {
+  Future<bool> is_character_audio_playing() async {
+    bool isPlaying = false;
+    characterPlayer.onPlayerStateChanged.listen((state) {
+      if (state == PlayerState.playing) {
+        isPlaying = true;
+      } else {
+        isPlaying = false;
+      }
+    });
+    return isPlaying;
+  }
+
+  void switch_hide_status() {
     barIsHiden.value = !barIsHiden.value;
+  }
+
+  void switch_auto_mode() {
+    isAutoMode.value = !isAutoMode.value;
+  }
+
+  void switch_mute() {
+    isMute.value = !isMute.value;
+    if (isMute.value) {
+      characterPlayer.setVolume(0);
+      bgmPlayer.setVolume(0);
+    } else {
+      characterPlayer.setVolume(1);
+      bgmPlayer.setVolume(1);
+    }
+  }
+
+  void before_jump() {
+    stop_auto_mode();
+    stopFastForward();
   }
 
   @override
   void onClose() {
     stopFastForward();
+    _autoModeTimer?.cancel();
+    characterPlayer.dispose();
+    bgmPlayer.dispose();
     super.onClose();
   }
 }

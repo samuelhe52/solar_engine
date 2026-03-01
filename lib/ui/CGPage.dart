@@ -36,6 +36,9 @@ class CGPage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          KeyboardTackle(
+            child: Container(),
+          ),
           Obx(
             () => Container(
               decoration: BoxDecoration(
@@ -108,46 +111,43 @@ class DialDock extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: double.infinity,
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withAlpha(50),
             child: Column(
               children: [
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      controller.charactersName.value,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        decoration: TextDecoration.none,
-                      ),
+                Container(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    controller.charactersName.value,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                 ),
                 Expanded(
-                    flex: 6,
                     child: Container(
-                      alignment: Alignment.topLeft,
-                      child: Obx(
-                        () => AnimatedTextKit(
-                          key: ValueKey(controller.currentScenario.value.text),
-                          displayFullTextOnTap: true,
-                          isRepeatingAnimation: false,
-                          animatedTexts: [
-                            TyperAnimatedText(
-                              controller.currentScenario.value.text,
-                              speed: Duration(milliseconds: 10),
-                              textStyle: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                decoration: TextDecoration.none,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    )),
+                  alignment: Alignment.topLeft,
+                  child: Obx(
+                    () => AnimatedTextKit(
+                      key: ValueKey(controller.currentScenario.value.text),
+                      displayFullTextOnTap: true,
+                      isRepeatingAnimation: false,
+                      onFinished: () => controller.is_text_animating = false,
+                      animatedTexts: [
+                        TyperAnimatedText(
+                          controller.currentScenario.value.text,
+                          speed: Duration(milliseconds: 10),
+                          textStyle: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            decoration: TextDecoration.none,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                )),
               ],
             ),
           ),
@@ -155,21 +155,34 @@ class DialDock extends StatelessWidget {
   }
 }
 
-class NavigationContainer extends StatefulWidget {
-  const NavigationContainer({super.key});
-
+class KeyboardTackle extends StatefulWidget {
+  final Widget child;
+  const KeyboardTackle({super.key, required this.child});
   @override
-  State<NavigationContainer> createState() => _NavigationContainerState();
+  State<KeyboardTackle> createState() => _KeyboardTackleState();
 }
 
-class _NavigationContainerState extends State<NavigationContainer> {
+class _KeyboardTackleState extends State<KeyboardTackle> {
   late final CGController controller;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<CGController>();
-    HardwareKeyboard.instance.addHandler(_handleKey);
+    _focusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   bool _handleKey(KeyEvent event) {
@@ -179,6 +192,10 @@ class _NavigationContainerState extends State<NavigationContainer> {
       if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
           event.logicalKey == LogicalKeyboardKey.space ||
           event.logicalKey == LogicalKeyboardKey.enter) {
+        controller.stop_auto_mode();
+        if (controller.barIsHiden.value) {
+          controller.switch_hide_status();
+        }
         controller.next();
         return true;
       } else if (isCtrl) {
@@ -211,16 +228,27 @@ class _NavigationContainerState extends State<NavigationContainer> {
   }
 
   @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_handleKey);
-    super.dispose();
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: widget.child,
+    );
   }
+}
 
+class NavigationContainer extends StatelessWidget {
+  late final CGController controller;
+  NavigationContainer({super.key}) {
+    controller = Get.find<CGController>();
+  }
   dynamic switch_hide_method(bool isMobile) {
+    controller.stop_auto_mode();
     return isMobile
         ? () {
             controller.stopFastForward();
-            controller.swith_hide_status();
+            controller.switch_hide_status();
           }
         : null;
   }
@@ -230,6 +258,10 @@ class _NavigationContainerState extends State<NavigationContainer> {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
+          controller.stop_auto_mode();
+          if (controller.barIsHiden.value) {
+            controller.switch_hide_status();
+          }
           await controller.next();
         },
         onLongPressStart: (_) {
@@ -260,49 +292,76 @@ class _NavigationContainerState extends State<NavigationContainer> {
                               : Icons.skip_next),
                           color: Colors.white,
                         ),
-                        //),
+                        IconButton(
+                          onPressed: () => controller.switch_auto_mode(),
+                          icon: Icon(Icons.auto_mode),
+                          color: Colors.white,
+                          style: ButtonStyle(
+                            backgroundColor: controller.isAutoMode.value
+                                ? WidgetStateColor.resolveWith(
+                                    (states) => Colors.white.withAlpha(30))
+                                : null,
+                          ),
+                        ),
                         IconButton(
                           //TODO: save page
-                          onPressed: () => Get.to(
-                            () => SaveLoadPage(isSave: true),
-                            binding: SaveLoadBinding(),
-                          ),
+                          onPressed: () {
+                            controller.before_jump();
+                            Get.to(
+                              () => SaveLoadPage(isSave: true),
+                              binding: SaveLoadBinding(),
+                            );
+                          },
                           icon: Icon(Icons.save),
                           color: Colors.white,
                         ),
                         IconButton(
                           //TODO: load page
-                          onPressed: () => Get.to(
-                            () => SaveLoadPage(isSave: false),
-                            binding: SaveLoadBinding(),
-                          ),
+                          onPressed: () {
+                            controller.before_jump();
+                            Get.to(
+                              () => SaveLoadPage(isSave: false),
+                              binding: SaveLoadBinding(),
+                            );
+                          },
                           icon: Icon(Icons.file_upload),
                           color: Colors.white,
                         ),
                         IconButton(
                           //TODO: volume control
-                          onPressed: () {},
-                          icon: Icon(Icons.volume_up),
+                          onPressed: () => controller.switch_mute(),
+                          icon: Icon(controller.isMute.value
+                              ? Icons.volume_off
+                              : Icons.volume_up),
                           color: Colors.white,
                         ),
                         IconButton(
                           //TODO: settings page
-                          onPressed: () => Get.to(
-                            () => SettingsPage(),
-                            binding: SettingsBinding(),
-                          ),
+                          onPressed: () {
+                            controller.before_jump();
+                            Get.to(
+                              () => SettingsPage(),
+                              binding: SettingsBinding(),
+                            );
+                          },
                           icon: Icon(Icons.settings),
                           color: Colors.white,
                         ),
                         IconButton(
                           //return to home page
-                          onPressed: () => Get.offAll(() => MainPage()),
+                          onPressed: () {
+                            controller.before_jump();
+                            Get.offAll(() => MainPage());
+                          },
                           icon: Icon(Icons.home),
                           color: Colors.white,
                         ),
                         IconButton(
                           // TODO: hide/show dilaogue dock
-                          onPressed: () {},
+                          onPressed: () {
+                            controller.before_jump();
+                            controller.switch_hide_status();
+                          },
                           icon: Icon(Icons.hide_image),
                           color: Colors.white,
                         ),

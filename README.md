@@ -35,6 +35,7 @@ Powered by flutter/dart.
     - [ ] aduio play tips
     - [ ] gobalization
     - [ ] background switch effects
+    - [x] hotkey support
 
 ## Change Log :
 

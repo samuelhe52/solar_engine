@@ -1,4 +1,6 @@
+import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:solar_engine/controller/SettingsController.dart';
@@ -23,59 +25,63 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Settings'),
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: Icon(Icons.arrow_back),
-        ),
-      ),
-      body: Row(
-        children: [
-          SidebarX(
-            extendedTheme: SidebarXTheme(
-              width: screenWidth * sidebarWidthRatio,
-              margin: EdgeInsets.only(right: 10),
-            ),
-            headerBuilder: (context, extended) {
-              return SizedBox(
-                height: 100,
-                child: Padding(padding: const EdgeInsets.all(16.0)),
-              );
+        appBar: AppBar(
+          title: Text('Settings'),
+          leading: IconButton(
+            onPressed: () {
+              controller.save_settings();
+              Get.back();
             },
-            controller: _controller,
-            items: const [
-              SidebarXItem(icon: Icons.settings, label: 'General'),
-              SidebarXItem(icon: Icons.display_settings, label: 'Display'),
-              SidebarXItem(icon: Icons.text_snippet, label: 'Text'),
-              SidebarXItem(icon: Icons.audio_file, label: 'Audio'),
+            icon: Icon(Icons.arrow_back),
+          ),
+        ),
+        body: KeyboardTackle(
+          child: Row(
+            children: [
+              SidebarX(
+                extendedTheme: SidebarXTheme(
+                  width: screenWidth * sidebarWidthRatio,
+                  margin: EdgeInsets.only(right: 10),
+                ),
+                headerBuilder: (context, extended) {
+                  return SizedBox(
+                    height: 100,
+                    child: Padding(padding: const EdgeInsets.all(16.0)),
+                  );
+                },
+                controller: _controller,
+                items: const [
+                  SidebarXItem(icon: Icons.settings, label: 'General'),
+                  SidebarXItem(icon: Icons.display_settings, label: 'Display'),
+                  SidebarXItem(icon: Icons.text_snippet, label: 'Text'),
+                  SidebarXItem(icon: Icons.audio_file, label: 'Audio'),
+                ],
+              ),
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    switch (_controller.selectedIndex) {
+                      case 0:
+                        return GeneralSettingsPage();
+                      case 1:
+                        return DisplaySettingsPage();
+                      case 2:
+                        return TextSettingsPage();
+                      case 3:
+                        return AudioSettingsPage();
+                      default:
+                        return Container(
+                          color: Colors.grey[200],
+                          child: Center(child: Text('? How did you get here?')),
+                        );
+                    }
+                  },
+                ),
+              ),
             ],
           ),
-          Expanded(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                switch (_controller.selectedIndex) {
-                  case 0:
-                    return GeneralSettingsPage();
-                  case 1:
-                    return DisplaySettingsPage();
-                  case 2:
-                    return TextSettingsPage();
-                  case 3:
-                    return AudioSettingsPage();
-                  default:
-                    return Container(
-                      color: Colors.grey[200],
-                      child: Center(child: Text('? How did you get here?')),
-                    );
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+        ));
   }
 }
 
@@ -168,9 +174,49 @@ class TextSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey[200],
-      child: Center(child: Text('Text Settings')),
-    );
+        color: Colors.grey[200],
+        child: Column(children: [
+          Expanded(
+              child: Obx(() => Column(
+                    children: [
+                      Text('Text Animation Speed (ms per character)'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                                min: 1,
+                                max: 100,
+                                divisions: 99,
+                                value: controller.textAnimationSpeed.value
+                                    .toDouble(),
+                                label:
+                                    "${controller.textAnimationSpeed.value}  ms/character",
+                                onChanged: (value) {
+                                  controller
+                                      .updateTextAnimationSpeed(value.toInt());
+                                }),
+                          ),
+                          Expanded(
+                              child: AnimatedTextKit(
+                            isRepeatingAnimation: true,
+                            repeatForever: true,
+                            animatedTexts: [
+                              TyperAnimatedText(
+                                "我能吞下玻璃而不伤身体",
+                                speed: Duration(
+                                    milliseconds:
+                                        controller.textAnimationSpeed.value),
+                                textStyle: TextStyle(
+                                  decoration: TextDecoration.none,
+                                ),
+                              )
+                            ],
+                          ))
+                        ],
+                      )
+                    ],
+                  )))
+        ]));
   }
 }
 
@@ -184,6 +230,59 @@ class AudioSettingsPage extends StatelessWidget {
     return Container(
       color: Colors.grey[200],
       child: Center(child: Text('Audio Settings')),
+    );
+  }
+}
+
+class KeyboardTackle extends StatefulWidget {
+  final Widget child;
+  const KeyboardTackle({super.key, required this.child});
+  @override
+  State<KeyboardTackle> createState() => _KeyboardTackleState();
+}
+
+class _KeyboardTackleState extends State<KeyboardTackle> {
+  late final SettingsController controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<SettingsController>();
+    _focusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  bool _handleKey(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        controller.save_settings();
+        Get.back();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: widget.child,
     );
   }
 }
