@@ -5,7 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:solar_engine/backend/game.dart';
 
 class CGController extends GetxController {
-  GameEngine _gameEngine = Get.find<GameEngine>();
+  final GameEngine _gameEngine = Get.find<GameEngine>();
 
   Timer? _fastForwardTimer;
   var _isAdvancing = false;

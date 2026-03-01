@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:solar_engine/main.dart';
 import 'package:solar_engine/ui/SettingsPage.dart';
@@ -154,11 +155,67 @@ class DialDock extends StatelessWidget {
   }
 }
 
-class NavigationContainer extends StatelessWidget {
+class NavigationContainer extends StatefulWidget {
+  const NavigationContainer({super.key});
+
+  @override
+  State<NavigationContainer> createState() => _NavigationContainerState();
+}
+
+class _NavigationContainerState extends State<NavigationContainer> {
   late final CGController controller;
-  NavigationContainer({super.key}) {
+
+  @override
+  void initState() {
+    super.initState();
     controller = Get.find<CGController>();
+    HardwareKeyboard.instance.addHandler(_handleKey);
   }
+
+  bool _handleKey(KeyEvent event) {
+    final isCtrl = event.logicalKey == LogicalKeyboardKey.controlLeft ||
+        event.logicalKey == LogicalKeyboardKey.controlRight;
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+          event.logicalKey == LogicalKeyboardKey.space ||
+          event.logicalKey == LogicalKeyboardKey.enter) {
+        controller.next();
+        return true;
+      } else if (isCtrl) {
+        controller.isFastForwarding.value
+            ? controller.stopFastForward()
+            : controller.startFastForward();
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+        Get.to(
+          () => SettingsPage(),
+          binding: SettingsBinding(),
+        );
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.keyS) {
+        Get.to(
+          () => SaveLoadPage(isSave: true),
+          binding: SaveLoadBinding(),
+        );
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
+        Get.to(
+          () => SaveLoadPage(isSave: false),
+          binding: SaveLoadBinding(),
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKey);
+    super.dispose();
+  }
+
   dynamic switch_hide_method(bool isMobile) {
     return isMobile
         ? () {
