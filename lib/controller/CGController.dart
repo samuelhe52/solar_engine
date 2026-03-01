@@ -20,8 +20,11 @@ class CGController extends GetxController {
   var scenarioPath = "";
   var isAutoMode = false.obs;
   var barIsHiden = false.obs;
+  var isHistoryMode = false.obs;
   var isMute = false.obs;
   var is_text_animating = false;
+  List<String> history = [];
+  List<String> histroy_characters = [];
   final AudioPlayer characterPlayer = AudioPlayer();
   final AudioPlayer bgmPlayer = AudioPlayer();
   CGController() {
@@ -50,7 +53,7 @@ class CGController extends GetxController {
 
   void startFastForward(
       {Duration interval = const Duration(milliseconds: 120)}) {
-    stop_auto_mode();
+    all_stop();
     if (_fastForwardTimer?.isActive ?? false) {
       return;
     }
@@ -101,6 +104,8 @@ class CGController extends GetxController {
       _gameEngine.gameIndex = currentIndex.value;
       charactersName.value = currentScenario.value.characters.join(", ");
       play_character_audio(currentScenario.value.charactersAudioPath);
+      history.add(currentScenario.value.text);
+      histroy_characters.add(charactersName.value);
       is_text_animating = true;
     }
   }
@@ -152,6 +157,12 @@ class CGController extends GetxController {
     isAutoMode.value = !isAutoMode.value;
   }
 
+  void stop_hiden_bar() {
+    if (barIsHiden.value) {
+      switch_hide_status();
+    }
+  }
+
   void switch_mute() {
     isMute.value = !isMute.value;
     if (isMute.value) {
@@ -163,9 +174,11 @@ class CGController extends GetxController {
     }
   }
 
-  void before_jump() {
+  // stop auto,fastforward,hidenbar
+  void all_stop() {
     stop_auto_mode();
     stopFastForward();
+    stop_hiden_bar();
   }
 
   @override

@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:solar_engine/backend/game.dart';
 import 'package:solar_engine/main.dart';
 import 'package:solar_engine/ui/SettingsPage.dart';
 import 'package:solar_engine/ui/SaveLoadPage.dart';
@@ -23,6 +25,8 @@ class CGPage extends StatelessWidget {
   late final CGController controller;
   final bool firstLoad;
   final String defaultBackgroundImagePath = "assets/images/default_cg.png";
+  final Duration scrollNextCooldown = Duration(milliseconds: 300);
+  final RxInt _lastScrollNextMs = 0.obs;
   CGPage({super.key, required this.firstLoad}) {
     controller = Get.find<CGController>();
     if (firstLoad) {
@@ -32,7 +36,32 @@ class CGPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Listener(
+      onPointerSignal: (pointerSignal) {
+        // 1. 判断是否是鼠标滚轮事件
+        if (pointerSignal is PointerScrollEvent) {
+          // 2. 获取滚动的偏移量
+          if (!controller.isHistoryMode.value) {
+            final scrollDelta = pointerSignal.scrollDelta;
+            // 3. 根据滚动的方向和距离执行相应的操作
+            logger.info("Pointer scroll detected: $scrollDelta");
+            if (scrollDelta.dy > 0) {
+              final nowMs = DateTime.now().millisecondsSinceEpoch;
+              if (nowMs - _lastScrollNextMs.value <
+                  scrollNextCooldown.inMilliseconds) {
+                return;
+              }
+              _lastScrollNextMs.value = nowMs;
+              // 向下滚动，执行下一步操作
+              controller.all_stop();
+              controller.next();
+            } else if (scrollDelta.dy < 0) {
+              controller.isHistoryMode.value = true;
+              // 向上滚动，执行历史记录查看操作
+            }
+          }
+        }
+      },
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -57,6 +86,10 @@ class CGPage extends StatelessWidget {
                 child: DialDock(),
               )),
           NavigationContainer(),
+          Obx(() => Offstage(
+                offstage: !controller.isHistoryMode.value,
+                child: HistoryContainer(),
+              )),
         ],
       ),
     );
@@ -189,37 +222,41 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
     final isCtrl = event.logicalKey == LogicalKeyboardKey.controlLeft ||
         event.logicalKey == LogicalKeyboardKey.controlRight;
     if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-          event.logicalKey == LogicalKeyboardKey.space ||
-          event.logicalKey == LogicalKeyboardKey.enter) {
-        controller.stop_auto_mode();
-        if (controller.barIsHiden.value) {
-          controller.switch_hide_status();
+      if (!controller.isHistoryMode.value) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+            event.logicalKey == LogicalKeyboardKey.space ||
+            event.logicalKey == LogicalKeyboardKey.enter) {
+          controller.all_stop();
+          controller.next();
+          return true;
+        } else if (isCtrl) {
+          controller.isFastForwarding.value
+              ? controller.stopFastForward()
+              : controller.startFastForward();
+          return true;
+        } else if (event.logicalKey == LogicalKeyboardKey.keyS) {
+          Get.to(
+            () => SaveLoadPage(isSave: true),
+            binding: SaveLoadBinding(),
+          );
+          return true;
+        } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
+          Get.to(
+            () => SaveLoadPage(isSave: false),
+            binding: SaveLoadBinding(),
+          );
+          return true;
         }
-        controller.next();
-        return true;
-      } else if (isCtrl) {
-        controller.isFastForwarding.value
-            ? controller.stopFastForward()
-            : controller.startFastForward();
-        return true;
-      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-        Get.to(
-          () => SettingsPage(),
-          binding: SettingsBinding(),
-        );
-        return true;
-      } else if (event.logicalKey == LogicalKeyboardKey.keyS) {
-        Get.to(
-          () => SaveLoadPage(isSave: true),
-          binding: SaveLoadBinding(),
-        );
-        return true;
-      } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
-        Get.to(
-          () => SaveLoadPage(isSave: false),
-          binding: SaveLoadBinding(),
-        );
+      }
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        if (controller.isHistoryMode.value) {
+          controller.isHistoryMode.value = false;
+        } else {
+          Get.to(
+            () => SettingsPage(),
+            binding: SettingsBinding(),
+          );
+        }
         return true;
       }
     }
@@ -230,11 +267,10 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
   @override
   Widget build(BuildContext context) {
     return KeyboardListener(
-      focusNode: _focusNode,
-      autofocus: true,
-      onKeyEvent: _handleKey,
-      child: widget.child,
-    );
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _handleKey,
+        child: widget.child);
   }
 }
 
@@ -258,10 +294,7 @@ class NavigationContainer extends StatelessWidget {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
-          controller.stop_auto_mode();
-          if (controller.barIsHiden.value) {
-            controller.switch_hide_status();
-          }
+          controller.all_stop();
           await controller.next();
         },
         onLongPressStart: (_) {
@@ -273,6 +306,7 @@ class NavigationContainer extends StatelessWidget {
         // Use correct named gesture callbacks based on device type
         onDoubleTap: switch_hide_method(isMobileDevice()),
         onSecondaryTap: switch_hide_method(!isMobileDevice()),
+        onVerticalDragUpdate: (details) {},
         child: Obx(() => Offstage(
             offstage: controller.barIsHiden.value,
             child: Align(
@@ -293,7 +327,10 @@ class NavigationContainer extends StatelessWidget {
                           color: Colors.white,
                         ),
                         IconButton(
-                          onPressed: () => controller.switch_auto_mode(),
+                          onPressed: () {
+                            controller.all_stop();
+                            controller.switch_auto_mode();
+                          },
                           icon: Icon(Icons.auto_mode),
                           color: Colors.white,
                           style: ButtonStyle(
@@ -306,7 +343,7 @@ class NavigationContainer extends StatelessWidget {
                         IconButton(
                           //TODO: save page
                           onPressed: () {
-                            controller.before_jump();
+                            controller.all_stop();
                             Get.to(
                               () => SaveLoadPage(isSave: true),
                               binding: SaveLoadBinding(),
@@ -318,7 +355,7 @@ class NavigationContainer extends StatelessWidget {
                         IconButton(
                           //TODO: load page
                           onPressed: () {
-                            controller.before_jump();
+                            controller.all_stop();
                             Get.to(
                               () => SaveLoadPage(isSave: false),
                               binding: SaveLoadBinding(),
@@ -338,7 +375,7 @@ class NavigationContainer extends StatelessWidget {
                         IconButton(
                           //TODO: settings page
                           onPressed: () {
-                            controller.before_jump();
+                            controller.all_stop();
                             Get.to(
                               () => SettingsPage(),
                               binding: SettingsBinding(),
@@ -350,7 +387,7 @@ class NavigationContainer extends StatelessWidget {
                         IconButton(
                           //return to home page
                           onPressed: () {
-                            controller.before_jump();
+                            controller.all_stop();
                             Get.offAll(() => MainPage());
                           },
                           icon: Icon(Icons.home),
@@ -359,7 +396,7 @@ class NavigationContainer extends StatelessWidget {
                         IconButton(
                           // TODO: hide/show dilaogue dock
                           onPressed: () {
-                            controller.before_jump();
+                            controller.all_stop();
                             controller.switch_hide_status();
                           },
                           icon: Icon(Icons.hide_image),
@@ -369,5 +406,54 @@ class NavigationContainer extends StatelessWidget {
                     ),
                   ),
                 )))));
+  }
+}
+
+class HistoryContainer extends StatelessWidget {
+  late final CGController controller;
+  HistoryContainer({super.key}) {
+    controller = Get.find<CGController>();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withAlpha(150),
+      child: Column(children: [
+        Row(
+          children: [
+            IconButton(
+                icon: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  controller.isHistoryMode.value = false;
+                }),
+            Text(
+              "History",
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            )
+          ],
+        ),
+        Expanded(
+          child: ListView.builder(
+              itemCount: controller.history.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(controller.histroy_characters[index],
+                      style: TextStyle(color: Colors.white70, fontSize: 18)),
+                  subtitle: Text(
+                    controller.history[index],
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  onTap: () {
+                    controller.play_character_audio(
+                        controller.currentScenario.value.charactersAudioPath);
+                  },
+                );
+              }),
+        )
+      ]),
+    );
   }
 }
