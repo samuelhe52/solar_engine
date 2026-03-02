@@ -62,6 +62,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Remove local Android SDK overrides
+        run: rm -f android/local.properties
+
       - name: Get dependencies
         run: flutter pub get
 

@@ -10,7 +10,6 @@ android {
     compileSdk = 36
     buildToolsVersion = "36.1.0"
     ndkVersion = "29.0.14206865"
-    ndkPath = "/opt/android-ndk"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
