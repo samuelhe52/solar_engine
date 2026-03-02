@@ -128,8 +128,6 @@ class GeneralSettingsPage extends StatelessWidget {
 
 class DisplaySettingsPage extends StatelessWidget {
   late final SettingsController controller;
-  final dialogDockFormKey = GlobalKey<FormState>();
-  final _characterRowFormKey = GlobalKey<FormState>();
   DisplaySettingsPage({super.key}) {
     controller = Get.find<SettingsController>();
   }
@@ -137,57 +135,41 @@ class DisplaySettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[200],
-      child: Column(
-        children: [
-          Expanded(
-              child: Form(
-            key: dialogDockFormKey,
-            child: TextFormField(
-              autofocus: true,
-              initialValue: controller.dialogDockHeight.value.toString(),
-              decoration: InputDecoration(
-                labelText: 'Dialog Dock Height (Relative to Screen Height)',
-                hintText: 'Enter a value between 0 and 1',
-              ),
-              keyboardType: TextInputType.number,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              validator: (value) {
-                final parsedValue = double.tryParse(value ?? '');
-                return controller.CheckHeightText(parsedValue)
-                    ? null
-                    : 'Please enter a valid number between 0 and 1';
-              },
-              onFieldSubmitted: (value) {
-                final parsedValue = double.tryParse(value);
-                controller.updateDialogDockHeight(parsedValue);
-              },
+      child: Obx(
+        () => Column(
+          children: [
+            Column(
+              children: [
+                Text(
+                    'Character Row Height: ${controller.characterRowHeight.value}'),
+                Slider(
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    value: controller.characterRowHeight.value.toDouble() * 100,
+                    label: "${controller.characterRowHeight.value * 100}%",
+                    onChanged: (value) {
+                      controller.updateCharacterRowHeight(value / 100);
+                    }),
+              ],
             ),
-          )),
-          Expanded(
-              child: Form(
-            key: _characterRowFormKey,
-            child: TextFormField(
-              autofocus: true,
-              initialValue: controller.characterRowHeight.value.toString(),
-              decoration: InputDecoration(
-                labelText: 'Character Row Height (Relative to Screen Height)',
-                hintText: 'Enter a value between 0 and 1',
-              ),
-              keyboardType: TextInputType.number,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              validator: (value) {
-                final parsedValue = double.tryParse(value ?? '');
-                return controller.CheckHeightText(parsedValue)
-                    ? null
-                    : 'Please enter a valid number between 0 and 1';
-              },
-              onFieldSubmitted: (value) {
-                final parsedValue = double.tryParse(value);
-                controller.updateCharacterRowHeight(parsedValue);
-              },
-            ),
-          )),
-        ],
+            Column(
+              children: [
+                Text(
+                    'Dialog Dock Height : ${controller.dialogDockHeight.value}'),
+                Slider(
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    value: controller.dialogDockHeight.value.toDouble() * 100,
+                    label: "${controller.dialogDockHeight.value * 100}%",
+                    onChanged: (value) {
+                      controller.updateDialogDockHeight(value / 100);
+                    }),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }

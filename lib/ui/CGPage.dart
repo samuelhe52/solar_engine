@@ -170,7 +170,9 @@ class DialDock extends StatelessWidget {
                       animatedTexts: [
                         TyperAnimatedText(
                           controller.currentScenario.value.text,
-                          speed: Duration(milliseconds: 10),
+                          speed: Duration(
+                              microseconds:
+                                  settingsController.textAnimationSpeed.value),
                           textStyle: TextStyle(
                             color: Colors.white,
                             fontSize: 18,

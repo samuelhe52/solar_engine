@@ -8,9 +8,13 @@ name: Flutter Build
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -102,3 +106,44 @@ jobs:
         with:
           name: windows-release
           path: build/windows/x64/runner/Release/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build-linux, build-apk, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: dist/linux-release
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-release
+          path: dist/apk-release
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: dist/windows-release
+
+      - name: Package release assets
+        run: |
+          cd dist
+          zip -r linux-release.zip linux-release
+          zip -r windows-release.zip windows-release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/linux-release.zip
+            dist/windows-release.zip
+            dist/apk-release/app-release.apk
