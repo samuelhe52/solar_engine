@@ -256,7 +256,39 @@ class AudioSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[200],
-      child: Center(child: Text('Audio Settings')),
+      child: Obx(() => Column(
+            children: [
+              Column(
+                children: [
+                  Text(
+                      'Character Voice Volume: ${controller.characterVoiceVolume.value}'),
+                  Slider(
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      value: controller.characterVoiceVolume.value.toDouble(),
+                      label: "${controller.characterVoiceVolume.value}%",
+                      onChanged: (value) {
+                        controller.updateCharacterVoiceVolume(value.toInt());
+                      }),
+                ],
+              ),
+              Column(
+                children: [
+                  Text('Music Volume: ${controller.musicVolume.value}'),
+                  Slider(
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      value: controller.musicVolume.value.toDouble(),
+                      label: "${controller.musicVolume.value}%",
+                      onChanged: (value) {
+                        controller.updateMusicVolume(value.toInt());
+                      }),
+                ],
+              )
+            ],
+          )),
     );
   }
 }

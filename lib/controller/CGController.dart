@@ -23,6 +23,9 @@ class CGController extends GetxController {
   var isHistoryMode = false.obs;
   var isMute = false.obs;
   var is_text_animating = false;
+  var characterVoiceVolume = 100.obs; // percentage
+  var musicVolume = 100.obs; // percentage
+
   List<String> history = [];
   List<String> histroy_characters = [];
   final AudioPlayer characterPlayer = AudioPlayer();
@@ -129,16 +132,18 @@ class CGController extends GetxController {
   }
 
   Future<void> play_bgm(String bgmPath) async {
-    bgmPlayer.stop();
-    await bgmPlayer.setSource(AssetSource(bgmPath));
+    await bgmPlayer.stop();
     // 可以设置为循环播放
     bgmPlayer.setReleaseMode(ReleaseMode.loop);
+    await bgmPlayer.play(AssetSource(bgmPath),
+        volume: isMute.value ? 0 : musicVolume.value / 100);
   }
 
   Future<void> play_character_audio(String path) async {
     if (path.isEmpty) return;
     await characterPlayer.stop();
-    await characterPlayer.play(AssetSource(path));
+    await characterPlayer.play(AssetSource(path),
+        volume: isMute.value ? 0 : characterVoiceVolume.value / 100);
   }
 
   Future<bool> is_character_audio_playing() async {
@@ -173,8 +178,8 @@ class CGController extends GetxController {
       characterPlayer.setVolume(0);
       bgmPlayer.setVolume(0);
     } else {
-      characterPlayer.setVolume(1);
-      bgmPlayer.setVolume(1);
+      characterPlayer.setVolume(characterVoiceVolume.value / 100);
+      bgmPlayer.setVolume(musicVolume.value / 100);
     }
   }
 

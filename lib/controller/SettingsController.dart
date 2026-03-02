@@ -5,6 +5,8 @@ class SettingsController extends GetxController {
   var dialogDockHeight = 0.25.obs;
   var characterRowHeight = 0.45.obs;
   var textAnimationSpeed = 10.obs; // characters per micro second
+  var characterVoiceVolume = 100.obs; // percentage
+  var musicVolume = 100.obs; // percentage
   late final GameEngine _gameEngine;
   SettingsController() {
     _gameEngine = Get.find<GameEngine>();
@@ -16,6 +18,8 @@ class SettingsController extends GetxController {
     dialogDockHeight.value = _gameEngine.settings['DockHeight'];
     characterRowHeight.value = _gameEngine.settings['CharacterRowHeight'];
     textAnimationSpeed.value = _gameEngine.settings['TextAnimationSpeed'];
+    characterVoiceVolume.value = _gameEngine.settings['CharacterVoiceVolume'];
+    musicVolume.value = _gameEngine.settings['MusicVolume'];
   }
 
   bool CheckHeightText(double? value) {
@@ -27,7 +31,6 @@ class SettingsController extends GetxController {
     if (CheckHeightText(value)) {
       dialogDockHeight.value = value!;
       _gameEngine.settings['DockHeight'] = value;
-      _gameEngine.save_settings();
     }
   }
 
@@ -35,13 +38,22 @@ class SettingsController extends GetxController {
     if (CheckHeightText(value)) {
       characterRowHeight.value = value!;
       _gameEngine.settings['CharacterRowHeight'] = value;
-      _gameEngine.save_settings();
     }
   }
 
   Future<void> updateTextAnimationSpeed(int value) async {
     textAnimationSpeed.value = value;
     _gameEngine.settings['TextAnimationSpeed'] = value;
+  }
+
+  Future<void> updateCharacterVoiceVolume(int value) async {
+    characterVoiceVolume.value = value;
+    _gameEngine.settings['CharacterVoiceVolume'] = value;
+  }
+
+  Future<void> updateMusicVolume(int value) async {
+    musicVolume.value = value;
+    _gameEngine.settings['MusicVolume'] = value;
   }
 
   Future<void> save_settings() async {

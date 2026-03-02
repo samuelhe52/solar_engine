@@ -4,5 +4,7 @@
     "gameAuthor": "cmach_socket",
     "DockHeight" : 0.25,
     "CharacterRowHeight" : 0.45,
-    "TextAnimationSpeed" : 10 
+    "TextAnimationSpeed" : 10 ,
+    "CharacterVoiceVolume" : 100,
+    "MusicVolume" : 100
 }

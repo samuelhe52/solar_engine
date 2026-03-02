@@ -83,6 +83,7 @@ class GameEngine {
   int get totalSaves => globalState["SaveCount"];
   String get scenarioPath => gameState["scenarioPath"];
   int get gameIndex => gameState["index"];
+
   set gameDescription(String description) =>
       gameState["description"] = description;
   set gameIndex(int index) => gameState["index"] = index;
