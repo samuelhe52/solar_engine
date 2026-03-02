@@ -16,7 +16,7 @@ class CGController extends GetxController {
   var currentScenario = Rx<TextUnion>(TextUnion());
   var charactersName = "".obs;
   var backgroundImagePath = "".obs;
-  var audioPath = "";
+  var bgmPath = "";
   var scenarioPath = "";
   var isAutoMode = false.obs;
   var barIsHiden = false.obs;
@@ -91,13 +91,17 @@ class CGController extends GetxController {
 
   Future<void> updateStates() async {
     currentScenario.value = currentScenarios[currentIndex.value];
-    if (currentScenario.value.type == CommandType.image.index) {
+    if (currentScenario.value.type == CommandType.image.index ||
+        currentScenario.value.type == CommandType.cg.index) {
       backgroundImagePath.value =
-          scenarioPath + currentScenario.value.resourcePath;
+          imagePath + currentScenario.value.resourcePath;
+      if (currentScenario.value.type == CommandType.cg.index) {
+        _gameEngine.add_cg_to_state(currentScenario.value.resourcePath);
+      }
       await next();
     } else if (currentScenario.value.type == CommandType.audio.index) {
-      audioPath = scenarioPath + currentScenario.value.resourcePath;
-      play_bgm(audioPath);
+      bgmPath = scenarioPath + currentScenario.value.resourcePath;
+      play_bgm(bgmPath);
 
       await next();
     } else {
@@ -114,11 +118,11 @@ class CGController extends GetxController {
     for (int i = currentIndex.value; i >= 0; i--) {
       if (currentScenarios[i].type == CommandType.image.index) {
         backgroundImagePath.value =
-            scenarioPath + currentScenarios[i].resourcePath;
+            imagePath + currentScenarios[i].resourcePath;
         break;
       } else if (currentScenarios[i].type == CommandType.audio.index) {
-        audioPath = scenarioPath + currentScenarios[i].resourcePath;
-        play_bgm(audioPath);
+        bgmPath = scenarioPath + currentScenarios[i].resourcePath;
+        play_bgm(bgmPath);
         break;
       }
     }

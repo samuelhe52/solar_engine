@@ -8,7 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-enum CommandType { text, image, audio }
+enum CommandType { text, image, audio, cg }
+
+const characterPath = "assets/characters/";
+const imagePath = "assets/images/";
+const audioPath = "assets/audio/";
 
 const int MaxCharacters = 5;
 final logger = Logger('App');
@@ -30,7 +34,7 @@ void setupLogging() {
 }
 
 class TextUnion {
-  int type = -1; // 0: text, 1: image , 2 : audio
+  int type = -1; // 0: text, 1: image , 2 : audio , 4 image and cg
   String text = "";
   String charactersAudioPath = "";
 
@@ -50,8 +54,8 @@ class TextUnion {
   void build_character_paths() {
     for (var i = 0; i < MaxCharacters; i++) {
       if (i < characters.length) {
-        charactersPath[i] = path.join(
-            "assets/characters/", "${characters[i]}_${actions[i]}.png");
+        charactersPath[i] =
+            path.join(characterPath, "${characters[i]}_${actions[i]}.png");
       }
     }
   }
@@ -69,28 +73,40 @@ class GameEngine {
   late final String defaultSavePath;
   Map<String, dynamic> settings = {};
   Map<String, dynamic> gameState = {};
-  Map<String, dynamic> globeState = {};
+  Map<String, dynamic> globalState = {};
+  Set<String> cgSet = {};
   GameFileManager fileManager = GameFileManager();
 
   List<TextUnion> currentScenario = [];
 
   GameEngine();
-  int get totalSaves => globeState["SaveCount"];
+  int get totalSaves => globalState["SaveCount"];
   String get scenarioPath => gameState["scenarioPath"];
   int get gameIndex => gameState["index"];
   set gameDescription(String description) =>
       gameState["description"] = description;
   set gameIndex(int index) => gameState["index"] = index;
-  set setSavesCount(int count) => globeState["SaveCount"] = count;
+  set setSavesCount(int count) => globalState["SaveCount"] = count;
   Future<void> initialize() async {
     logger.info("Initializing game engine");
     await environment_check();
     settings = await fileManager.read_json_from_file(
       await fileManager.safe_read_file(settingsPath),
     );
-    globeState = await fileManager.read_json_from_file(
+    globalState = await fileManager.read_json_from_file(
       await fileManager.safe_read_file(globalSavePath),
     );
+    cgSet = {...globalState["cg"]};
+  }
+
+  Future<void> add_cg_to_state(String path) async {
+    if (!cgSet.contains(path)) {
+      cgSet.add(path);
+      globalState["cg"].add(path);
+      fileManager.safe_read_file(globalSavePath).then((file) {
+        fileManager.write_json_to_file(file, globalState);
+      });
+    }
   }
 
   String saveSlotPath(int saveSlot) =>
@@ -165,10 +181,14 @@ class GameEngine {
         final parts = command.split(":");
         final cmd = parts[0].trim();
         final arg = parts[1].trim();
-        if (cmd == "background") {
-          results.add(
-            TextUnion.withParams(CommandType.image.index, resourcePath: arg),
-          );
+        if (cmd.startsWith("background")) {
+          if (cmd.lastIndexOf("(cg)") > 0) {
+            results.add(
+                TextUnion.withParams(CommandType.cg.index, resourcePath: arg));
+          } else {
+            results.add(TextUnion.withParams(CommandType.image.index,
+                resourcePath: arg));
+          }
         } else if (cmd == "audio") {
           results.add(
               TextUnion.withParams(CommandType.audio.index, resourcePath: arg));
@@ -222,7 +242,7 @@ class GameEngine {
     );
     fileManager.write_json_to_file(
       await fileManager.safe_read_file(globalSavePath),
-      globeState,
+      globalState,
     );
   }
 

@@ -17,6 +17,16 @@ class GalleryPage extends StatelessWidget {
     controller = Get.find<GalleryController>();
   }
 
+  String _thumbnailAssetPath(String cgPath) {
+    if (cgPath.trim().isEmpty) {
+      return 'assets/images/default_cg.png';
+    }
+    if (cgPath.startsWith('assets/')) {
+      return cgPath;
+    }
+    return 'assets/images/$cgPath';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,8 +37,51 @@ class GalleryPage extends StatelessWidget {
           icon: Icon(Icons.arrow_back),
         ),
       ),
-      body: Center(
-        child: Text('This is the Gallery Page.\nNothing is complete yet.'),
+      body: Obx(
+        () => GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+          ),
+          itemCount: controller.galleryState.length,
+          itemBuilder: (context, index) {
+            final cgPath = controller.galleryState[index];
+            final assetPath = _thumbnailAssetPath(cgPath);
+            return Card(
+              elevation: 2,
+              clipBehavior: Clip.antiAlias,
+              child: GestureDetector(
+                onTap: () {
+                  Get.dialog(
+                    Dialog(
+                      child: InteractiveViewer(
+                        child: Image.asset(
+                          assetPath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/images/default_cg.png',
+                              fit: BoxFit.contain,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                      'assets/images/default_cg.png',
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

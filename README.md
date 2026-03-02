@@ -15,6 +15,7 @@ Powered by flutter/dart.
 1. [x] route manager ,
 
     - [x] CGPage with DialDock
+    - [x] HistoryPage 
     - [x] HomePage
     - [x] SettingsPage
     - [x] SaveLoadPage
@@ -27,7 +28,8 @@ Powered by flutter/dart.
     - [ ] markdown support (long after!)
 3. Settings,
     - [x] dialog and character image height adjustment
-    - [ ] text animation speed with example
+    - [x] text animation speed with example
+    - [x] Reset all settings
     - [ ] audio volume adjustment
 
 4. Other,
