@@ -1,4 +1,4 @@
-package com.example.solar_engine
+package cmachsocket.solar_engine.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.solar_engine"
+    namespace = "cmachsocket.solar_engine.app"
     compileSdk = 36
     buildToolsVersion = "36.1.0"
     ndkVersion = "29.0.14206865"
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.solar_engine"
+        applicationId = "cmachsocket.solar_engine.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
