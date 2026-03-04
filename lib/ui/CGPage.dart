@@ -27,6 +27,7 @@ class CGPage extends StatelessWidget {
   final String defaultBackgroundImagePath = "assets/images/default_cg.png";
   final Duration scrollNextCooldown = Duration(milliseconds: 300);
   final RxInt _lastScrollNextMs = 0.obs;
+
   CGPage({super.key, required this.firstLoad}) {
     controller = Get.find<CGController>();
     if (firstLoad) {
@@ -41,7 +42,8 @@ class CGPage extends StatelessWidget {
         // 1. 判断是否是鼠标滚轮事件
         if (pointerSignal is PointerScrollEvent) {
           // 2. 获取滚动的偏移量
-          if (!controller.isHistoryMode.value) {
+          if (!controller.isHistoryMode.value &&
+              !controller.isChooseBranch.value) {
             final scrollDelta = pointerSignal.scrollDelta;
             // 3. 根据滚动的方向和距离执行相应的操作
             logger.info("Pointer scroll detected: $scrollDelta");
@@ -117,10 +119,15 @@ class CharacterRow extends StatelessWidget {
       child: Row(
         spacing: 5,
         children: [
-          for (var i = 0; i < MaxCharacters; i++)
+          for (var i = 0;
+              i < MaxCharacters &&
+                  controller.currentScenario.value.runtimeType == TextUnion;
+              i++)
             Obx(
               () => Expanded(
-                child: controller.currentScenario.value.charactersPath[i] != ""
+                child: controller.currentScenario.value.runtimeType ==
+                            TextUnion &&
+                        controller.currentScenario.value.charactersPath[i] != ""
                     ? Image.asset(
                         controller.currentScenario.value.charactersPath[i],
                         fit: BoxFit.contain,
@@ -167,13 +174,20 @@ class DialDock extends StatelessWidget {
                   alignment: Alignment.topLeft,
                   child: Obx(
                     () => AnimatedTextKit(
-                      key: ValueKey(controller.currentScenario.value.text),
+                      key: ValueKey(
+                          controller.currentScenario.value.runtimeType ==
+                                  TextUnion
+                              ? controller.currentScenario.value.text
+                              : ""),
                       displayFullTextOnTap: true,
                       isRepeatingAnimation: false,
                       onFinished: () => controller.isTextAnimating = false,
                       animatedTexts: [
                         TyperAnimatedText(
-                          controller.currentScenario.value.text,
+                          controller.currentScenario.value.runtimeType ==
+                                  TextUnion
+                              ? controller.currentScenario.value.text
+                              : "",
                           speed: Duration(
                               milliseconds:
                                   settingsController.textAnimationSpeed.value),
@@ -228,7 +242,7 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
     final isCtrl = event.logicalKey == LogicalKeyboardKey.controlLeft ||
         event.logicalKey == LogicalKeyboardKey.controlRight;
     if (event is KeyDownEvent) {
-      if (!controller.isHistoryMode.value) {
+      if (!controller.isHistoryMode.value && !controller.isChooseBranch.value) {
         if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
             event.logicalKey == LogicalKeyboardKey.space ||
             event.logicalKey == LogicalKeyboardKey.enter) {
@@ -300,6 +314,7 @@ class NavigationContainer extends StatelessWidget {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
+          //if(!controller.isHistoryMode.value && !controller.isChooseBranch.value)
           controller.all_stop();
           await controller.next();
         },
@@ -471,21 +486,30 @@ class BrachesContainer extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Column(
-        children: [
-          for (int i = 0;
-              controller.currentScenario.value.runtimeType == chooseUnion &&
-                  i < controller.currentScenario.value.sourceList.length;
-              i++)
-            ElevatedButton(
-              onPressed: () {
-                controller.select_branch(i);
-              },
-              child: Text(controller.currentScenario.value.sourceList[i]),
-            )
-        ],
-      ),
-    );
+    return Obx(() => Material(
+          color: Colors.black.withAlpha(150),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 20,
+            children: [
+              for (int i = 0;
+                  controller.currentScenario.value.runtimeType == chooseUnion &&
+                      i < controller.currentScenario.value.sourceList.length;
+                  i++)
+                Align(
+                  alignment: Alignment.center,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await controller.select_branch(i);
+                    },
+                    child: Text(
+                      controller.currentScenario.value.sourceList[i],
+                      style: TextStyle(fontSize: 30),
+                    ),
+                  ),
+                )
+            ],
+          ),
+        ));
   }
 }

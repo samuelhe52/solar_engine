@@ -95,11 +95,15 @@ class GameEngine {
   int get totalSaves => globalState["SaveCount"];
   String get scenarioPath => gameState["scenarioPath"];
   int get gameIndex => gameState["index"];
+  String get gameBackground => gameState["background"];
+  String get gameAudio => gameState["audio"];
 
   set gameDescription(String description) =>
       gameState["description"] = description;
   set gameIndex(int index) => gameState["index"] = index;
   set setSavesCount(int count) => globalState["SaveCount"] = count;
+  set setBackground(String path) => gameState["background"] = path;
+  set setAudio(String path) => gameState["audio"] = path;
   Future<void> initialize() async {
     logger.info("Initializing game engine");
     await environment_check();
@@ -258,7 +262,7 @@ class GameEngine {
     return results;
   }
 
-  Future<void> select_branch(int branchID, int index) async {
+  Future<void> select_branch(String branchID, int index) async {
     // TODO implement branch selection logic
     logger.info("Branch selected: index $index");
     final branches = currentScenario[gameIndex].sourceList;
@@ -274,14 +278,14 @@ class GameEngine {
   }
 
   Future<void> jump_to_scenario(List<String> jumpScenarioPath) async {
-    int index = BranchesDecide.jump_decide(
-        scenarioPath, gameState["variables"], globalState["variables"]);
+    int index = BranchesDecide.jump_decide(gameState["scenario"],
+        gameState["variables"], globalState["variables"]);
     if (index < jumpScenarioPath.length) {
       final scenarioText = await rootBundle.loadString(
         path.join(gameState["scenarioPath"], jumpScenarioPath[index]),
       );
       currentScenario = await explain_scenario(scenarioText);
-      gameState["scenarioPath"] = jumpScenarioPath[index];
+      gameState["scenario"] = jumpScenarioPath[index];
       gameState["index"] = 0;
     } else {
       logger.warning(

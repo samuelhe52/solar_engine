@@ -3,9 +3,10 @@
     "scenarioPath" : "assets/scenario/",
     "scenario" : "start.sce",
     "description" : "",
+    "background" : "",
+    "audio" : "",
     "index" : 0,
     
     "variables" : {
-        "jumpbranches":0
     }
 }

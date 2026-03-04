@@ -26,7 +26,6 @@ class CGController extends GetxController {
   var isChooseBranch = false.obs;
   var characterVoiceVolume = 100.obs; // percentage
   var musicVolume = 100.obs; // percentage
-
   List<String> history = [];
   List<String> histroy_characters = [];
   final AudioPlayer characterPlayer = AudioPlayer();
@@ -99,19 +98,23 @@ class CGController extends GetxController {
         currentScenario.value.type == CommandType.cg.index) {
       backgroundImagePath.value =
           imagePath + currentScenario.value.resourcePath;
+      _gameEngine.setBackground = currentScenario.value.resourcePath;
       if (currentScenario.value.type == CommandType.cg.index) {
         _gameEngine.add_cg_to_state(currentScenario.value.resourcePath);
       }
       await next();
     } else if (currentScenario.value.type == CommandType.audio.index) {
-      bgmPath = scenarioPath + currentScenario.value.resourcePath;
-      play_bgm(bgmPath);
+      bgmPath = audioPath + currentScenario.value.resourcePath;
+      if (_gameEngine.gameAudio.trim().isNotEmpty) {
+        play_bgm(bgmPath);
+      }
+      _gameEngine.setAudio = audioPath;
 
       await next();
     } else if (currentScenario.value.type == CommandType.jump.index) {
-      _gameEngine.jump_to_scenario(currentScenario.value.sourceList);
-      currentScenarios = _gameEngine.currentScenario;
+      await _gameEngine.jump_to_scenario(currentScenario.value.sourceList);
       currentIndex.value = 0;
+      currentScenarios = _gameEngine.currentScenario;
       await updateStates();
     } else if (currentScenario.value.type == CommandType.branches.index) {
       // do nothing,wait for user to select branch
@@ -127,16 +130,10 @@ class CGController extends GetxController {
   }
 
   void load_initial_scenario() {
-    for (int i = currentIndex.value; i >= 0; i--) {
-      if (currentScenarios[i].type == CommandType.image.index) {
-        backgroundImagePath.value =
-            imagePath + currentScenarios[i].resourcePath;
-        break;
-      } else if (currentScenarios[i].type == CommandType.audio.index) {
-        bgmPath = scenarioPath + currentScenarios[i].resourcePath;
-        play_bgm(bgmPath);
-        break;
-      }
+    backgroundImagePath.value = imagePath + _gameEngine.gameBackground;
+    bgmPath = audioPath + _gameEngine.gameAudio;
+    if (_gameEngine.gameAudio.trim().isNotEmpty) {
+      play_bgm(bgmPath);
     }
   }
 
@@ -208,10 +205,11 @@ class CGController extends GetxController {
     super.onClose();
   }
 
-  void select_branch(int index) {
+  Future<void> select_branch(int index) async {
     isChooseBranch.value = false;
     // Handle branch selection logic here
     _gameEngine.select_branch(currentScenario.value.id, index);
+    await next();
     updateStates();
   }
 }

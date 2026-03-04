@@ -11,3 +11,7 @@ background (cg) : cg.png
 FUCK
 
 STST
+
+branches 1 : inside , outside
+
+jump : branch1.sce , branch2.sce

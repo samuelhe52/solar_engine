@@ -1,14 +1,22 @@
 class BranchesDecide {
   static void branches_tackle(
-      int branchesId,
+      String branchesId,
       int choose,
       Map<String, dynamic> gameVariables,
-      Map<String, dynamic> globalVariables) {}
-  static int jump_decide(
-      String currentScenario,
-      Map<String, dynamic> gameVariables,
+      Map<String, dynamic> globalVariables) {
+    //infer the type of gameVariables and globalVariables from the game engine
+    if (branchesId == "1") {
+      globalVariables["branch1"] = choose;
+    }
+  }
+
+  static int jump_decide(String scenario, Map<String, dynamic> gameVariables,
       Map<String, dynamic> globalVariables) {
     // TODO implement jump decide,it should return the index of the scenario to jump to, and it should also update the values map if necessary
+    if (scenario == "start.sce") {
+      return globalVariables["branch1"] ?? 0;
+    }
     return 0;
   }
 }
+//It's a demo. The real implementation should be in the game engine, and it should be able to handle different types of branches, such as jump branches, variable branches, etc.
