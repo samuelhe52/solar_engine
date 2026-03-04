@@ -90,6 +90,10 @@ class CGPage extends StatelessWidget {
                 offstage: !controller.isHistoryMode.value,
                 child: HistoryContainer(),
               )),
+          Obx(() => Offstage(
+                offstage: !controller.isChooseBranch.value,
+                child: BrachesContainer(),
+              )),
         ],
       ),
     );
@@ -166,7 +170,7 @@ class DialDock extends StatelessWidget {
                       key: ValueKey(controller.currentScenario.value.text),
                       displayFullTextOnTap: true,
                       isRepeatingAnimation: false,
-                      onFinished: () => controller.is_text_animating = false,
+                      onFinished: () => controller.isTextAnimating = false,
                       animatedTexts: [
                         TyperAnimatedText(
                           controller.currentScenario.value.text,
@@ -456,6 +460,32 @@ class HistoryContainer extends StatelessWidget {
               }),
         )
       ]),
+    );
+  }
+}
+
+class BrachesContainer extends StatelessWidget {
+  late final CGController controller;
+  BrachesContainer({super.key}) {
+    controller = Get.find<CGController>();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => Column(
+        children: [
+          for (int i = 0;
+              controller.currentScenario.value.runtimeType == chooseUnion &&
+                  i < controller.currentScenario.value.sourceList.length;
+              i++)
+            ElevatedButton(
+              onPressed: () {
+                controller.select_branch(i);
+              },
+              child: Text(controller.currentScenario.value.sourceList[i]),
+            )
+        ],
+      ),
     );
   }
 }

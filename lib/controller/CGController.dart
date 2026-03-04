@@ -12,8 +12,8 @@ class CGController extends GetxController {
   var _isAdvancing = false;
   var isFastForwarding = false.obs;
   var currentIndex = 0.obs;
-  var currentScenarios = <TextUnion>[];
-  var currentScenario = Rx<TextUnion>(TextUnion());
+  var currentScenarios = <dynamic>[];
+  var currentScenario = Rx<dynamic>(null);
   var charactersName = "".obs;
   var backgroundImagePath = "".obs;
   var bgmPath = "";
@@ -22,7 +22,8 @@ class CGController extends GetxController {
   var barIsHiden = false.obs;
   var isHistoryMode = false.obs;
   var isMute = false.obs;
-  var is_text_animating = false;
+  var isTextAnimating = false;
+  var isChooseBranch = false.obs;
   var characterVoiceVolume = 100.obs; // percentage
   var musicVolume = 100.obs; // percentage
 
@@ -37,7 +38,7 @@ class CGController extends GetxController {
     scenarioPath = _gameEngine.scenarioPath;
     _autoModeTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (isAutoMode.value) {
-        if (!is_text_animating && !await is_character_audio_playing()) {
+        if (!isTextAnimating && !await is_character_audio_playing()) {
           next();
         }
       }
@@ -107,13 +108,21 @@ class CGController extends GetxController {
       play_bgm(bgmPath);
 
       await next();
+    } else if (currentScenario.value.type == CommandType.jump.index) {
+      _gameEngine.jump_to_scenario(currentScenario.value.sourceList);
+      currentScenarios = _gameEngine.currentScenario;
+      currentIndex.value = 0;
+      await updateStates();
+    } else if (currentScenario.value.type == CommandType.branches.index) {
+      // do nothing,wait for user to select branch
+      isChooseBranch.value = true;
     } else {
       _gameEngine.gameIndex = currentIndex.value;
       charactersName.value = currentScenario.value.characters.join(", ");
       play_character_audio(currentScenario.value.charactersAudioPath);
       history.add(currentScenario.value.text);
       histroy_characters.add(charactersName.value);
-      is_text_animating = true;
+      isTextAnimating = true;
     }
   }
 
@@ -197,5 +206,12 @@ class CGController extends GetxController {
     characterPlayer.dispose();
     bgmPlayer.dispose();
     super.onClose();
+  }
+
+  void select_branch(int index) {
+    isChooseBranch.value = false;
+    // Handle branch selection logic here
+    _gameEngine.select_branch(currentScenario.value.id, index);
+    updateStates();
   }
 }

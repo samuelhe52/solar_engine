@@ -1,10 +1,11 @@
 {
     "time" : "",
     "scenarioPath" : "assets/scenario/",
+    "scenario" : "start.sce",
     "description" : "",
     "index" : 0,
     
-    "varibles" : {
-        
+    "variables" : {
+        "jumpbranches":0
     }
 }

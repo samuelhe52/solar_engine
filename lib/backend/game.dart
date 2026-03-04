@@ -7,8 +7,9 @@ import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'branches.dart';
 
-enum CommandType { text, image, audio, cg }
+enum CommandType { text, image, audio, cg, jump, branches }
 
 const characterPath = "assets/characters/";
 const imagePath = "assets/images/";
@@ -34,20 +35,17 @@ void setupLogging() {
 }
 
 class TextUnion {
-  int type = -1; // 0: text, 1: image , 2 : audio , 4 image and cg
+  int type = -1; // 0: text
   String text = "";
   String charactersAudioPath = "";
 
   List<String> characters = ["", "", "", "", ""];
-  String resourcePath = "";
   List<String> actions = ["", "", "", "", ""];
   List<String> charactersPath = ["", "", "", "", ""];
-  TextUnion();
   TextUnion.withParams(
     this.type, {
     this.text = "",
     List<String>? characters,
-    this.resourcePath = "",
     List<String>? actions,
   })  : characters = characters ?? [],
         actions = actions ?? [];
@@ -61,11 +59,25 @@ class TextUnion {
   }
 }
 
+class ResourceUnion {
+  int type = -1; // 1 : image , 2: audio ,3 image and cg
+  String resourcePath = "";
+  ResourceUnion(this.type, this.resourcePath);
+  ResourceUnion.withParams(this.type, {required this.resourcePath});
+}
+
+class chooseUnion {
+  int type = -1; // 5 jump ,6 branches
+  String id = ""; // for branches
+  List<String> sourceList = [];
+  chooseUnion(this.sourceList);
+  chooseUnion.withParams(this.type, {required this.sourceList});
+}
+
 class GameEngine {
   final settingsAssetPath = 'assets/default/settings.json';
   final globalSaveAssetPath = 'assets/default/globe_save.json';
   final defaultSaveAssetPath = 'assets/default/save.json';
-  final scenario = "text.sce";
   late final String savePath;
   late final String rootPath;
   late final String globalSavePath;
@@ -77,7 +89,7 @@ class GameEngine {
   Set<String> cgSet = {};
   GameFileManager fileManager = GameFileManager();
 
-  List<TextUnion> currentScenario = [];
+  List<dynamic> currentScenario = [];
 
   GameEngine();
   int get totalSaves => globalState["SaveCount"];
@@ -158,7 +170,9 @@ class GameEngine {
     return descriptions;
   }
 
-  Future<String> load_game_from_save(String savePath) async {
+  Future<String> load_game_from_save(
+    String savePath,
+  ) async {
     // both update gameState and return scenario text
     gameState = await fileManager.read_json_from_file(
       await fileManager.safe_read_file(savePath),
@@ -167,14 +181,14 @@ class GameEngine {
       "Game loaded successfully from $savePath, scenario: ${gameState['scenarioPath']}",
     );
     return await rootBundle.loadString(
-      path.join(gameState["scenarioPath"], scenario),
+      path.join(gameState["scenarioPath"], gameState["scenario"]),
     );
   }
 
-  Future<List<TextUnion>> explain_scenario(String scenarioText) async {
+  Future<List<dynamic>> explain_scenario(String scenarioText) async {
     logger.info("Explaining scenario text:\n$scenarioText");
     final commands = scenarioText.split("\n");
-    List<TextUnion> results = [];
+    List<dynamic> results = [];
     for (var command in commands) {
       command = command.trim();
       if (command.isEmpty || command.startsWith("#")) continue;
@@ -184,17 +198,29 @@ class GameEngine {
         final arg = parts[1].trim();
         if (cmd.startsWith("background")) {
           if (cmd.lastIndexOf("(cg)") > 0) {
-            results.add(
-                TextUnion.withParams(CommandType.cg.index, resourcePath: arg));
+            results.add(ResourceUnion.withParams(CommandType.cg.index,
+                resourcePath: arg));
           } else {
-            results.add(TextUnion.withParams(CommandType.image.index,
+            results.add(ResourceUnion.withParams(CommandType.image.index,
                 resourcePath: arg));
           }
         } else if (cmd == "audio") {
-          results.add(
-              TextUnion.withParams(CommandType.audio.index, resourcePath: arg));
+          results.add(ResourceUnion.withParams(CommandType.audio.index,
+              resourcePath: arg));
         } else if (cmd.startsWith("`") && cmd.endsWith("`")) {
           // TODO explain values , other commands
+        } else if (cmd.startsWith("jump")) {
+          // TODO jump command
+          results.add(chooseUnion.withParams(
+            CommandType.jump.index,
+            sourceList: arg.split(',').map((e) => e.trim()).toList(),
+          ));
+        } else if (cmd.startsWith("branches")) {
+          String id = cmd.split(' ')[1];
+          results.add(chooseUnion.withParams(
+            CommandType.branches.index,
+            sourceList: arg.split(',').map((e) => e.trim()).toList(),
+          )..id = id);
         } else {
           var textUnion = TextUnion.withParams(
             CommandType.text.index,
@@ -230,6 +256,37 @@ class GameEngine {
       }
     }
     return results;
+  }
+
+  Future<void> select_branch(int branchID, int index) async {
+    // TODO implement branch selection logic
+    logger.info("Branch selected: index $index");
+    final branches = currentScenario[gameIndex].sourceList;
+    if (index < 0 || index >= branches.length) {
+      logger
+          .warning("Branch index $index out of range for branches: $branches");
+      return;
+    }
+    final selectedBranch = branches[index];
+    logger.info("Selected branch: $selectedBranch");
+    BranchesDecide.branches_tackle(
+        branchID, index, gameState["variables"], globalState["variables"]);
+  }
+
+  Future<void> jump_to_scenario(List<String> jumpScenarioPath) async {
+    int index = BranchesDecide.jump_decide(
+        scenarioPath, gameState["variables"], globalState["variables"]);
+    if (index < jumpScenarioPath.length) {
+      final scenarioText = await rootBundle.loadString(
+        path.join(gameState["scenarioPath"], jumpScenarioPath[index]),
+      );
+      currentScenario = await explain_scenario(scenarioText);
+      gameState["scenarioPath"] = jumpScenarioPath[index];
+      gameState["index"] = 0;
+    } else {
+      logger.warning(
+          "Jump index $index out of range for jump paths: $jumpScenarioPath");
+    }
   }
 
   Future<void> save_game_to_file(String time, int saveSlot) async {
