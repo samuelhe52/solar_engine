@@ -28,7 +28,7 @@ class CGController extends GetxController {
   var characterVoiceVolume = 100.obs; // percentage
   var musicVolume = 100.obs; // percentage
   List<String> history = [];
-  List<String> histroy_characters = [];
+  List<String> history_characters = [];
   final AudioPlayer characterPlayer = AudioPlayer();
   final AudioPlayer bgmPlayer = AudioPlayer();
   CGController() {
@@ -130,7 +130,7 @@ class CGController extends GetxController {
       charactersName.value = currentScenario.value.characters.join(", ");
       play_character_audio(currentScenario.value.charactersAudioPath);
       history.add(currentScenario.value.text);
-      histroy_characters.add(charactersName.value);
+      history_characters.add(charactersName.value);
       isTextAnimating = true;
     }
   }
@@ -214,16 +214,18 @@ class CGController extends GetxController {
   Future<void> select_branch(int index) async {
     isChooseBranch.value = false;
     // Handle branch selection logic here
+    history_characters.add("branch ${currentScenario.value.id}");
+    history.add(currentScenario.value.sourceList[index]);
     await _gameEngine.select_branch(currentScenario.value.id, index);
     await next();
-    updateStates();
   }
 
   Future<void> select_input(String input) async {
     isChooseBranch.value = false;
     // Handle input logic here
+    history_characters.add(currentScenario.value.text);
+    history.add(input);
     await _gameEngine.select_input(currentScenario.value.id, input);
     await next();
-    updateStates();
   }
 }

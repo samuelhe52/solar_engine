@@ -60,72 +60,83 @@ class _CGPageState extends State<CGPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerSignal: (pointerSignal) {
-        // 1. 判断是否是鼠标滚轮事件
-        if (pointerSignal is PointerScrollEvent) {
-          // 2. 获取滚动的偏移量
-          if (!controller.isHistoryMode.value &&
-              !controller.isChooseBranch.value) {
-            final scrollDelta = pointerSignal.scrollDelta;
-            // 3. 根据滚动的方向和距离执行相应的操作
-            logger.info("Pointer scroll detected: $scrollDelta");
-            if (scrollDelta.dy > 0) {
-              final nowMs = DateTime.now().millisecondsSinceEpoch;
-              if (nowMs - _lastScrollNextMs.value <
-                  scrollNextCooldown.inMilliseconds) {
-                return;
+    return KeyboardTackle(
+      child: Listener(
+        onPointerSignal: (pointerSignal) {
+          // 1. 判断是否是鼠标滚轮事件
+          if (pointerSignal is PointerScrollEvent) {
+            // 2. 获取滚动的偏移量
+            if (!controller.isHistoryMode.value &&
+                !controller.isChooseBranch.value) {
+              final scrollDelta = pointerSignal.scrollDelta;
+              // 3. 根据滚动的方向和距离执行相应的操作
+              logger.info("Pointer scroll detected: $scrollDelta");
+              if (scrollDelta.dy > 0) {
+                final nowMs = DateTime.now().millisecondsSinceEpoch;
+                if (nowMs - _lastScrollNextMs.value <
+                    scrollNextCooldown.inMilliseconds) {
+                  return;
+                }
+                _lastScrollNextMs.value = nowMs;
+                // 向下滚动，执行下一步操作
+                controller.all_stop();
+                controller.next();
+              } else if (scrollDelta.dy < 0) {
+                controller.isHistoryMode.value = true;
+                // 向上滚动，执行历史记录查看操作
               }
-              _lastScrollNextMs.value = nowMs;
-              // 向下滚动，执行下一步操作
-              controller.all_stop();
-              controller.next();
-            } else if (scrollDelta.dy < 0) {
-              controller.isHistoryMode.value = true;
-              // 向上滚动，执行历史记录查看操作
             }
           }
-        }
-      },
-      onPointerDown: (_) {
-        // 触摸时显示系统UI并重置隐藏计时器
-        if (isMobileDevice()) {
-          uiManager.showAndResetTimer();
-        }
-      },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          KeyboardTackle(
-            child: Container(),
-          ),
-          Obx(
-            () => Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(controller.backgroundImagePath.value.isEmpty
-                      ? defaultBackgroundImagePath
-                      : controller.backgroundImagePath.value),
-                  fit: BoxFit.fill,
+        },
+        onPointerDown: (_) {
+          // 触摸时显示系统UI并重置隐藏计时器
+          if (isMobileDevice()) {
+            uiManager.showAndResetTimer();
+          }
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Obx(
+              () => Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(
+                        controller.backgroundImagePath.value.isEmpty
+                            ? defaultBackgroundImagePath
+                            : controller.backgroundImagePath.value),
+                    fit: BoxFit.fill,
+                  ),
                 ),
               ),
             ),
-          ),
-          CharacterRow(),
-          Obx(() => Offstage(
-                offstage: controller.barIsHiden.value,
-                child: DialDock(),
-              )),
-          NavigationContainer(),
-          Obx(() => Offstage(
-                offstage: !controller.isHistoryMode.value,
-                child: HistoryContainer(),
-              )),
-          Obx(() => Offstage(
-                offstage: !controller.isChooseBranch.value,
-                child: BrachesContainer(),
-              )),
-        ],
+            CharacterRow(),
+            Obx(() => Offstage(
+                  offstage: controller.barIsHiden.value,
+                  child: DialDock(),
+                )),
+            NavigationContainer(),
+            Obx(() => Offstage(
+                  offstage: !controller.isHistoryMode.value,
+                  child: Focus(
+                    skipTraversal: true,
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.escape) {
+                        controller.isHistoryMode.value = false;
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: HistoryContainer(),
+                  ),
+                )),
+            Obx(() => Offstage(
+                  offstage: !controller.isChooseBranch.value,
+                  child: BrachesContainer(),
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -343,11 +354,18 @@ class NavigationContainer extends StatelessWidget {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
-          //if(!controller.isHistoryMode.value && !controller.isChooseBranch.value)
+          if (controller.isHistoryMode.value ||
+              controller.isChooseBranch.value) {
+            return;
+          }
           controller.all_stop();
           await controller.next();
         },
         onLongPressStart: (_) {
+          if (controller.isHistoryMode.value ||
+              controller.isChooseBranch.value) {
+            return;
+          }
           controller.startFastForward();
         },
         onLongPressEnd: (_) {
@@ -497,7 +515,7 @@ class HistoryContainer extends StatelessWidget {
               itemCount: controller.history.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(controller.histroy_characters[index],
+                  title: Text(controller.history_characters[index],
                       style: TextStyle(color: Colors.white70, fontSize: 18)),
                   subtitle: Text(
                     controller.history[index],
