@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'branches.dart';
 
-enum CommandType { text, image, audio, cg, jump, branches }
+enum CommandType { text, image, audio, cg, jump, branches, input }
 
 const characterPath = "assets/characters/";
 const imagePath = "assets/images/";
@@ -67,11 +67,13 @@ class ResourceUnion {
 }
 
 class chooseUnion {
-  int type = -1; // 5 jump ,6 branches
-  String id = ""; // for branches
+  int type = -1; // 5 jump ,6 branches ,7 input
+  String id = ""; // for branches and input
+  String text = ""; // for input
   List<String> sourceList = [];
   chooseUnion(this.sourceList);
-  chooseUnion.withParams(this.type, {required this.sourceList});
+  chooseUnion.withParams(this.type,
+      {required this.sourceList, this.id = "", this.text = ""});
 }
 
 class GameEngine {
@@ -191,6 +193,16 @@ class GameEngine {
 
   Future<List<dynamic>> explain_scenario(String scenarioText) async {
     logger.info("Explaining scenario text:\n$scenarioText");
+
+    scenarioText = scenarioText.splitMapJoin(
+      RegExp(r'\$(\w+)'),
+      onMatch: (match) =>
+          gameState["variables"]["${match[1]}"]?.toString() ??
+          globalState["variables"]["${match[1]}"]?.toString() ??
+          match[0]!,
+      onNonMatch: (nonMatch) => nonMatch,
+    );
+
     final commands = scenarioText.split("\n");
     List<dynamic> results = [];
     for (var command in commands) {

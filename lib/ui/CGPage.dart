@@ -20,19 +20,42 @@ class CGBinding extends Bindings {
   }
 }
 
-class CGPage extends StatelessWidget {
+class CGPage extends StatefulWidget {
+  final bool firstLoad;
+
+  const CGPage({super.key, required this.firstLoad});
+
+  @override
+  State<CGPage> createState() => _CGPageState();
+}
+
+class _CGPageState extends State<CGPage> {
   // 使用 Get.put 实例化控制器，并使其在整个应用程序中可用
   late final CGController controller;
-  final bool firstLoad;
+  late final SystemUIAutoHideManager uiManager;
   final String defaultBackgroundImagePath = "assets/images/default_cg.png";
   final Duration scrollNextCooldown = Duration(milliseconds: 300);
   final RxInt _lastScrollNextMs = 0.obs;
 
-  CGPage({super.key, required this.firstLoad}) {
+  @override
+  void initState() {
+    super.initState();
     controller = Get.find<CGController>();
-    if (firstLoad) {
+    if (widget.firstLoad) {
       controller.load_initial_scenario();
     }
+    uiManager = SystemUIAutoHideManager();
+    if (isMobileDevice()) {
+      uiManager.showAndResetTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (isMobileDevice()) {
+      uiManager.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -62,6 +85,12 @@ class CGPage extends StatelessWidget {
               // 向上滚动，执行历史记录查看操作
             }
           }
+        }
+      },
+      onPointerDown: (_) {
+        // 触摸时显示系统UI并重置隐藏计时器
+        if (isMobileDevice()) {
+          uiManager.showAndResetTimer();
         }
       },
       child: Stack(
@@ -415,6 +444,13 @@ class NavigationContainer extends StatelessWidget {
                           color: Colors.white,
                         ),
                         IconButton(
+                            onPressed: () =>
+                                controller.isHistoryMode.value = true,
+                            icon: Icon(
+                              Icons.history,
+                              color: Colors.white,
+                            )),
+                        IconButton(
                           // TODO: hide/show dilaogue dock
                           onPressed: () {
                             controller.all_stop();
@@ -492,19 +528,41 @@ class BrachesContainer extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 20,
             children: [
-              for (int i = 0;
-                  controller.currentScenario.value.runtimeType == chooseUnion &&
-                      i < controller.currentScenario.value.sourceList.length;
-                  i++)
-                Align(
-                  alignment: Alignment.center,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await controller.select_branch(i);
+              if (controller.currentScenario.value.type ==
+                  CommandType.branches.index)
+                for (int i = 0;
+                    i < controller.currentScenario.value.sourceList.length;
+                    i++)
+                  Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await controller.select_branch(i);
+                      },
+                      child: Text(
+                        controller.currentScenario.value.sourceList[i],
+                        style: TextStyle(fontSize: 30),
+                      ),
+                    ),
+                  ),
+              if (controller.currentScenario.value.type ==
+                  CommandType.input.index)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 50.0),
+                  child: TextField(
+                    onSubmitted: (value) async {
+                      await controller.select_input(value);
                     },
-                    child: Text(
-                      controller.currentScenario.value.sourceList[i],
-                      style: TextStyle(fontSize: 30),
+                    style: TextStyle(fontSize: 24, color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "请输入内容",
+                      hintStyle: TextStyle(fontSize: 24, color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white54, width: 2),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white, width: 2),
+                      ),
                     ),
                   ),
                 )

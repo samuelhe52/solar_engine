@@ -118,6 +118,7 @@ class CGController extends GetxController {
       await updateStates();
     } else if (currentScenario.value.type == CommandType.branches.index) {
       // do nothing,wait for user to select branch
+      all_stop();
       isChooseBranch.value = true;
     } else {
       _gameEngine.gameIndex = currentIndex.value;
@@ -212,4 +213,6 @@ class CGController extends GetxController {
     await next();
     updateStates();
   }
+
+  Future<void> select_input(String input) async {}
 }
