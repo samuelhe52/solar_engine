@@ -24,6 +24,7 @@ class CGController extends GetxController {
   var isMute = false.obs;
   var isTextAnimating = false;
   var isChooseBranch = false.obs;
+  var inputText = "".obs;
   var characterVoiceVolume = 100.obs; // percentage
   var musicVolume = 100.obs; // percentage
   List<String> history = [];
@@ -116,9 +117,13 @@ class CGController extends GetxController {
       currentIndex.value = 0;
       currentScenarios = _gameEngine.currentScenario;
       await updateStates();
-    } else if (currentScenario.value.type == CommandType.branches.index) {
+    } else if (currentScenario.value.type == CommandType.branches.index ||
+        currentScenario.value.type == CommandType.input.index) {
       // do nothing,wait for user to select branch
       all_stop();
+      if (currentScenario.value.type == CommandType.input.index) {
+        inputText.value = currentScenario.value.text;
+      }
       isChooseBranch.value = true;
     } else {
       _gameEngine.gameIndex = currentIndex.value;
@@ -209,10 +214,16 @@ class CGController extends GetxController {
   Future<void> select_branch(int index) async {
     isChooseBranch.value = false;
     // Handle branch selection logic here
-    _gameEngine.select_branch(currentScenario.value.id, index);
+    await _gameEngine.select_branch(currentScenario.value.id, index);
     await next();
     updateStates();
   }
 
-  Future<void> select_input(String input) async {}
+  Future<void> select_input(String input) async {
+    isChooseBranch.value = false;
+    // Handle input logic here
+    await _gameEngine.select_input(currentScenario.value.id, input);
+    await next();
+    updateStates();
+  }
 }

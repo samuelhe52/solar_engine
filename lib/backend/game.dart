@@ -192,8 +192,6 @@ class GameEngine {
   }
 
   Future<List<dynamic>> explain_scenario(String scenarioText) async {
-    logger.info("Explaining scenario text:\n$scenarioText");
-
     scenarioText = scenarioText.splitMapJoin(
       RegExp(r'\$(\w+)'),
       onMatch: (match) =>
@@ -202,7 +200,7 @@ class GameEngine {
           match[0]!,
       onNonMatch: (nonMatch) => nonMatch,
     );
-
+    logger.info("Explaining scenario text:\n$scenarioText");
     final commands = scenarioText.split("\n");
     List<dynamic> results = [];
     for (var command in commands) {
@@ -237,6 +235,14 @@ class GameEngine {
             CommandType.branches.index,
             sourceList: arg.split(',').map((e) => e.trim()).toList(),
           )..id = id);
+        } else if (cmd.startsWith("input")) {
+          String id = cmd.split(' ')[1];
+          results.add(chooseUnion.withParams(
+            CommandType.input.index,
+            sourceList: [],
+            id: id,
+            text: arg,
+          ));
         } else {
           var textUnion = TextUnion.withParams(
             CommandType.text.index,
@@ -287,6 +293,14 @@ class GameEngine {
     logger.info("Selected branch: $selectedBranch");
     BranchesDecide.branches_tackle(
         branchID, index, gameState["variables"], globalState["variables"]);
+  }
+
+  Future<void> select_input(String id, String input) async {
+    // TODO implement input selection logic
+    logger.info("Input selected: id $id, input: $input");
+    // Handle input logic here
+    BranchesDecide.input_decide(
+        id, input, gameState["variables"], globalState["variables"]);
   }
 
   Future<void> jump_to_scenario(List<String> jumpScenarioPath) async {

@@ -555,7 +555,7 @@ class BrachesContainer extends StatelessWidget {
                     },
                     style: TextStyle(fontSize: 24, color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: "请输入内容",
+                      hintText: controller.inputText.value,
                       hintStyle: TextStyle(fontSize: 24, color: Colors.white54),
                       enabledBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.white54, width: 2),
