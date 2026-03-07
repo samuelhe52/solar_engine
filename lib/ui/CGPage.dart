@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:path/path.dart';
 import 'package:solar_engine/backend/game.dart';
 import 'package:solar_engine/main.dart';
 import 'package:solar_engine/ui/SettingsPage.dart';
@@ -13,8 +12,6 @@ import 'package:solar_engine/controller/SettingsController.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:markdown/markdown.dart' as md;
-
-const int MaxCharacters = 5;
 
 class CGBinding extends Bindings {
   @override
@@ -157,31 +154,42 @@ class CharacterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      heightFactor: settingsController.characterRowHeight.value,
-      alignment: Alignment.bottomLeft,
-      child: Row(
-        spacing: 5,
-        children: [
-          for (var i = 0;
-              i < MaxCharacters &&
-                  controller.currentScenario.value.runtimeType == TextUnion;
-              i++)
-            Obx(
-              () => Expanded(
-                child: controller.currentScenario.value.runtimeType ==
-                            TextUnion &&
-                        controller.currentScenario.value.charactersPath[i] != ""
-                    ? Image.asset(
-                        controller.currentScenario.value.charactersPath[i],
-                        fit: BoxFit.contain,
-                      )
-                    : Container(),
-              ),
+    return Obx(() {
+      if (controller.currentScenario.value.runtimeType != TextUnion) {
+        return const SizedBox.shrink();
+      }
+
+      final rawCharacterPaths = controller.currentScenario.value.charactersPath;
+      final characterPaths = (rawCharacterPaths is List
+              ? rawCharacterPaths.whereType<String>()
+              : const <String>[])
+          .where((String path) => path.isNotEmpty)
+          .toList(growable: false);
+
+      return FractionallySizedBox(
+        heightFactor: settingsController.characterRowHeight.value,
+        alignment: Alignment.bottomLeft,
+        child: Align(
+          alignment: Alignment.bottomLeft,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final path in characterPaths)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 5),
+                    child: Image.asset(
+                      path,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
-    );
+          ),
+        ),
+      );
+    });
   }
 }
 

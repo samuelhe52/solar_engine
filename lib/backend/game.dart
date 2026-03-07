@@ -15,7 +15,6 @@ const characterPath = "assets/characters/";
 const imagePath = "assets/images/";
 const audioPath = "assets/audio/";
 
-const int MaxCharacters = 5;
 final logger = Logger('App');
 void setupLogging() {
   // 设置根日志级别（接收所有级别）
@@ -39,9 +38,9 @@ class TextUnion {
   String text = "";
   String charactersAudioPath = "";
 
-  List<String> characters = ["", "", "", "", ""];
-  List<String> actions = ["", "", "", "", ""];
-  List<String> charactersPath = ["", "", "", "", ""];
+  List<String> characters = [];
+  List<String> actions = [];
+  List<String> charactersPath = [];
   TextUnion.withParams(
     this.type, {
     this.text = "",
@@ -50,10 +49,13 @@ class TextUnion {
   })  : characters = characters ?? [],
         actions = actions ?? [];
   void build_character_paths() {
-    for (var i = 0; i < MaxCharacters; i++) {
-      if (i < characters.length) {
+    final int count = characters.length;
+    charactersPath = List<String>.filled(count, "");
+    for (var i = 0; i < count; i++) {
+      final action = i < actions.length ? actions[i] : "";
+      if (characters[i].isNotEmpty && action.isNotEmpty) {
         charactersPath[i] =
-            path.join(characterPath, "${characters[i]}_${actions[i]}.png");
+            path.join(characterPath, "${characters[i]}_${action}.png");
       }
     }
   }
