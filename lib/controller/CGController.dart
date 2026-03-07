@@ -4,13 +4,14 @@ import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:solar_engine/backend/game.dart';
 
+enum PageState { main, history, fastForward, auto, branch, input, hiddenBar }
+
 class CGController extends GetxController {
   final GameEngine _gameEngine = Get.find<GameEngine>();
-
   Timer? _fastForwardTimer;
   Timer? _autoModeTimer;
+  var state = PageState.main.index.obs;
   var _isAdvancing = false;
-  var isFastForwarding = false.obs;
   var currentIndex = 0.obs;
   var currentScenarios = <dynamic>[];
   var currentScenario = Rx<dynamic>(null);
@@ -18,12 +19,8 @@ class CGController extends GetxController {
   var backgroundImagePath = "".obs;
   var bgmPath = "";
   var scenarioPath = "";
-  var isAutoMode = false.obs;
-  var barIsHiden = false.obs;
-  var isHistoryMode = false.obs;
   var isMute = false.obs;
   var isTextAnimating = false;
-  var isChooseBranch = false.obs;
   var inputText = "".obs;
   var characterVoiceVolume = 100.obs; // percentage
   var musicVolume = 100.obs; // percentage
@@ -37,7 +34,7 @@ class CGController extends GetxController {
     currentIndex.value = _gameEngine.gameIndex;
     scenarioPath = _gameEngine.scenarioPath;
     _autoModeTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      if (isAutoMode.value) {
+      if (state.value == PageState.auto.index) {
         if (!isTextAnimating && !await is_character_audio_playing()) {
           next();
         }
@@ -61,20 +58,18 @@ class CGController extends GetxController {
     if (_fastForwardTimer?.isActive ?? false) {
       return;
     }
-    isFastForwarding.value = true;
+    state.value = PageState.fastForward.index;
     _fastForwardTimer = Timer.periodic(interval, (_) {
       _advanceStep();
     });
   }
 
-  void stop_auto_mode() {
-    if (isAutoMode.value) switch_auto_mode();
-  }
-
   void stopFastForward() {
     _fastForwardTimer?.cancel();
     _fastForwardTimer = null;
-    isFastForwarding.value = false;
+    if (state.value == PageState.fastForward.index) {
+      state.value = PageState.main.index;
+    }
   }
 
   Future<void> _advanceStep() async {
@@ -124,7 +119,7 @@ class CGController extends GetxController {
       if (currentScenario.value.type == CommandType.input.index) {
         inputText.value = currentScenario.value.text;
       }
-      isChooseBranch.value = true;
+      state.value = CommandType.branches.index;
     } else {
       _gameEngine.gameIndex = currentIndex.value;
       charactersName.value = currentScenario.value.characters.join(", ");
@@ -170,17 +165,27 @@ class CGController extends GetxController {
     return isPlaying;
   }
 
-  void switch_hide_status() {
-    barIsHiden.value = !barIsHiden.value;
+  void start_hide_status() {
+    if (state.value != PageState.hiddenBar.index) {
+      state.value = PageState.hiddenBar.index;
+    }
   }
 
-  void switch_auto_mode() {
-    isAutoMode.value = !isAutoMode.value;
+  void start_auto_mode() {
+    if (state.value != PageState.auto.index) {
+      state.value = PageState.auto.index;
+    }
+  }
+
+  void stop_auto_mode() {
+    if (state.value == PageState.auto.index) {
+      state.value = PageState.main.index;
+    }
   }
 
   void stop_hiden_bar() {
-    if (barIsHiden.value) {
-      switch_hide_status();
+    if (state.value == PageState.hiddenBar.index) {
+      state.value = PageState.main.index;
     }
   }
 
@@ -197,9 +202,15 @@ class CGController extends GetxController {
 
   // stop auto,fastforward,hidenbar
   void all_stop() {
-    stop_auto_mode();
     stopFastForward();
-    stop_hiden_bar();
+    state.value = PageState.main.index;
+  }
+
+  bool is_in_main_page() {
+    return state.value == PageState.main.index ||
+        state.value == PageState.hiddenBar.index ||
+        state.value == PageState.auto.index ||
+        state.value == PageState.fastForward.index;
   }
 
   @override
@@ -212,7 +223,7 @@ class CGController extends GetxController {
   }
 
   Future<void> select_branch(int index) async {
-    isChooseBranch.value = false;
+    state.value = PageState.main.index;
     // Handle branch selection logic here
     history_characters.add("branch ${currentScenario.value.id}");
     history.add(currentScenario.value.sourceList[index]);
@@ -221,7 +232,7 @@ class CGController extends GetxController {
   }
 
   Future<void> select_input(String input) async {
-    isChooseBranch.value = false;
+    state.value = PageState.main.index;
     // Handle input logic here
     history_characters.add(currentScenario.value.text);
     history.add(input);

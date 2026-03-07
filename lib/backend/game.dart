@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'branches.dart';
 
-enum CommandType { text, image, audio, cg, jump, branches, input }
+enum CommandType { text, image, audio, cg, jump, branches, input, markdown }
 
 const characterPath = "assets/characters/";
 const imagePath = "assets/images/";
@@ -35,7 +35,7 @@ void setupLogging() {
 }
 
 class TextUnion {
-  int type = -1; // 0: text
+  int type = -1; // 0: text, 8: markdown
   String text = "";
   String charactersAudioPath = "";
 
@@ -193,7 +193,7 @@ class GameEngine {
 
   Future<List<dynamic>> explain_scenario(String scenarioText) async {
     scenarioText = scenarioText.splitMapJoin(
-      RegExp(r'\$(\w+)'),
+      RegExp(r'\$(\w+)(?!\$)'),
       onMatch: (match) =>
           gameState["variables"]["${match[1]}"]?.toString() ??
           globalState["variables"]["${match[1]}"]?.toString() ??
@@ -244,10 +244,19 @@ class GameEngine {
             text: arg,
           ));
         } else {
-          var textUnion = TextUnion.withParams(
-            CommandType.text.index,
-            text: arg,
-          );
+          late TextUnion textUnion;
+          if (arg.startsWith("`") && arg.endsWith("`")) {
+            String md = arg.substring(1, arg.length - 1);
+            textUnion = TextUnion.withParams(
+              CommandType.markdown.index,
+              text: md,
+            );
+          } else {
+            textUnion = TextUnion.withParams(
+              CommandType.text.index,
+              text: arg,
+            );
+          }
           cmd.split(',').forEach((element) {
             final parts = element.split(' ');
             textUnion.characters.add(parts[0].trim());
@@ -271,6 +280,10 @@ class GameEngine {
         }
       } else if (command.startsWith("`") && command.endsWith("`")) {
         // TODO explain values , other commands
+        command = command.substring(1, command.length - 1);
+        results.add(
+          TextUnion.withParams(CommandType.markdown.index, text: command),
+        );
       } else {
         results.add(
           TextUnion.withParams(CommandType.text.index, text: command),

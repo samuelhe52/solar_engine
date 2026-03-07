@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:path/path.dart';
 import 'package:solar_engine/backend/game.dart';
 import 'package:solar_engine/main.dart';
 import 'package:solar_engine/ui/SettingsPage.dart';
@@ -9,6 +10,9 @@ import 'package:solar_engine/ui/SaveLoadPage.dart';
 import 'package:solar_engine/controller/CGController.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:solar_engine/controller/SettingsController.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
+import 'package:markdown/markdown.dart' as md;
 
 const int MaxCharacters = 5;
 
@@ -66,8 +70,7 @@ class _CGPageState extends State<CGPage> {
           // 1. 判断是否是鼠标滚轮事件
           if (pointerSignal is PointerScrollEvent) {
             // 2. 获取滚动的偏移量
-            if (!controller.isHistoryMode.value &&
-                !controller.isChooseBranch.value) {
+            if (controller.state.value == PageState.main.index) {
               final scrollDelta = pointerSignal.scrollDelta;
               // 3. 根据滚动的方向和距离执行相应的操作
               logger.info("Pointer scroll detected: $scrollDelta");
@@ -82,7 +85,7 @@ class _CGPageState extends State<CGPage> {
                 controller.all_stop();
                 controller.next();
               } else if (scrollDelta.dy < 0) {
-                controller.isHistoryMode.value = true;
+                controller.state.value = PageState.history.index;
                 // 向上滚动，执行历史记录查看操作
               }
             }
@@ -112,18 +115,18 @@ class _CGPageState extends State<CGPage> {
             ),
             CharacterRow(),
             Obx(() => Offstage(
-                  offstage: controller.barIsHiden.value,
+                  offstage: controller.state.value == PageState.hiddenBar.index,
                   child: DialDock(),
                 )),
             NavigationContainer(),
             Obx(() => Offstage(
-                  offstage: !controller.isHistoryMode.value,
+                  offstage: controller.state.value != PageState.history.index,
                   child: Focus(
                     skipTraversal: true,
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent &&
                           event.logicalKey == LogicalKeyboardKey.escape) {
-                        controller.isHistoryMode.value = false;
+                        controller.state.value = PageState.main.index;
                         return KeyEventResult.handled;
                       }
                       return KeyEventResult.ignored;
@@ -132,7 +135,8 @@ class _CGPageState extends State<CGPage> {
                   ),
                 )),
             Obx(() => Offstage(
-                  offstage: !controller.isChooseBranch.value,
+                  offstage: controller.state.value != PageState.branch.index &&
+                      controller.state.value != PageState.input.index,
                   child: BrachesContainer(),
                 )),
           ],
@@ -191,7 +195,7 @@ class DialDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() => FractionallySizedBox(
-          heightFactor: settingsController.dialogDockHeight.value, // 父容器高度的 30%
+          heightFactor: settingsController.dialogDockHeight.value, // 父容器高度的比例
           alignment: Alignment.bottomCenter,
           child: Container(
             width: double.infinity,
@@ -211,37 +215,83 @@ class DialDock extends StatelessWidget {
                 ),
                 Expanded(
                     child: Container(
-                  alignment: Alignment.topLeft,
-                  child: Obx(
-                    () => AnimatedTextKit(
-                      key: ValueKey(
-                          controller.currentScenario.value.runtimeType ==
-                                  TextUnion
-                              ? controller.currentScenario.value.text
-                              : ""),
-                      displayFullTextOnTap: true,
-                      isRepeatingAnimation: false,
-                      onFinished: () => controller.isTextAnimating = false,
-                      animatedTexts: [
-                        TyperAnimatedText(
-                          controller.currentScenario.value.runtimeType ==
-                                  TextUnion
-                              ? controller.currentScenario.value.text
-                              : "",
-                          speed: Duration(
-                              milliseconds:
-                                  settingsController.textAnimationSpeed.value),
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            decoration: TextDecoration.none,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                )),
+                        alignment: Alignment.topLeft,
+                        child: controller.currentScenario.value.type ==
+                                CommandType.markdown.index
+                            ? MarkdownText()
+                            : NormalText())),
               ],
+            ),
+          ),
+        ));
+  }
+}
+
+class NormalText extends StatelessWidget {
+  late final CGController controller;
+  late final SettingsController settingsController;
+  NormalText({super.key}) {
+    controller = Get.find<CGController>();
+    settingsController = Get.find<SettingsController>();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => AnimatedTextKit(
+          key: ValueKey(
+              controller.currentScenario.value.runtimeType == TextUnion
+                  ? controller.currentScenario.value.text
+                  : ""),
+          displayFullTextOnTap: true,
+          isRepeatingAnimation: false,
+          onFinished: () => controller.isTextAnimating = false,
+          animatedTexts: [
+            TyperAnimatedText(
+              controller.currentScenario.value.runtimeType == TextUnion
+                  ? controller.currentScenario.value.text
+                  : "",
+              speed: Duration(
+                  milliseconds: settingsController.textAnimationSpeed.value),
+              textStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                decoration: TextDecoration.none,
+              ),
+            )
+          ],
+        ));
+  }
+}
+
+class MarkdownText extends StatelessWidget {
+  late final CGController controller;
+  late final SettingsController settingsController;
+  MarkdownText({
+    super.key,
+  }) {
+    controller = Get.find<CGController>();
+    settingsController = Get.find<SettingsController>();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => Markdown(
+          builders: {
+            'latex': LatexElementBuilder(
+              textStyle: const TextStyle(color: Colors.white, fontSize: 18),
+              textScaleFactor: 1.2,
+            ),
+          },
+          extensionSet: md.ExtensionSet(
+            [LatexBlockSyntax()],
+            [LatexInlineSyntax()],
+          ),
+          data: (controller.currentScenario.value.runtimeType == TextUnion
+              ? controller.currentScenario.value.text
+              : ""),
+          styleSheet: MarkdownStyleSheet(
+            p: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              decoration: TextDecoration.none,
             ),
           ),
         ));
@@ -282,7 +332,7 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
     final isCtrl = event.logicalKey == LogicalKeyboardKey.controlLeft ||
         event.logicalKey == LogicalKeyboardKey.controlRight;
     if (event is KeyDownEvent) {
-      if (!controller.isHistoryMode.value && !controller.isChooseBranch.value) {
+      if (controller.is_in_main_page()) {
         if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
             event.logicalKey == LogicalKeyboardKey.space ||
             event.logicalKey == LogicalKeyboardKey.enter) {
@@ -290,7 +340,7 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
           controller.next();
           return true;
         } else if (isCtrl) {
-          controller.isFastForwarding.value
+          controller.state.value == PageState.fastForward.index
               ? controller.stopFastForward()
               : controller.startFastForward();
           return true;
@@ -309,8 +359,8 @@ class _KeyboardTackleState extends State<KeyboardTackle> {
         }
       }
       if (event.logicalKey == LogicalKeyboardKey.escape) {
-        if (controller.isHistoryMode.value) {
-          controller.isHistoryMode.value = false;
+        if (controller.state.value == PageState.history.index) {
+          controller.state.value = PageState.main.index;
         } else {
           Get.to(
             () => SettingsPage(),
@@ -344,7 +394,9 @@ class NavigationContainer extends StatelessWidget {
     return isMobile
         ? () {
             controller.stopFastForward();
-            controller.switch_hide_status();
+            controller.state.value == PageState.hiddenBar.index
+                ? controller.stop_hiden_bar()
+                : controller.start_hide_status();
           }
         : null;
   }
@@ -354,16 +406,13 @@ class NavigationContainer extends StatelessWidget {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
-          if (controller.isHistoryMode.value ||
-              controller.isChooseBranch.value) {
-            return;
+          if (controller.is_in_main_page()) {
+            controller.all_stop();
+            await controller.next();
           }
-          controller.all_stop();
-          await controller.next();
         },
         onLongPressStart: (_) {
-          if (controller.isHistoryMode.value ||
-              controller.isChooseBranch.value) {
+          if (controller.state.value != PageState.main.index) {
             return;
           }
           controller.startFastForward();
@@ -375,112 +424,131 @@ class NavigationContainer extends StatelessWidget {
         onDoubleTap: switch_hide_method(isMobileDevice()),
         onSecondaryTap: switch_hide_method(!isMobileDevice()),
         onVerticalDragUpdate: (details) {},
-        child: Obx(() => Offstage(
-            offstage: controller.barIsHiden.value,
-            child: Align(
-                alignment: Alignment.bottomCenter,
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        //Obx(
-                        IconButton(
-                          onPressed: () => controller.isFastForwarding.value
+        child: IconBar());
+  }
+}
+
+class IconBar extends StatelessWidget {
+  late final CGController controller;
+  IconBar({super.key}) {
+    controller = Get.find<CGController>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => Offstage(
+        offstage: controller.state.value == PageState.hiddenBar.index,
+        child: Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    //Obx(
+                    IconButton(
+                      onPressed: () =>
+                          controller.state.value == PageState.fastForward.index
                               ? controller.stopFastForward()
                               : controller.startFastForward(),
-                          icon: Icon(controller.isFastForwarding.value
+                      icon: Icon(
+                          controller.state.value == PageState.fastForward.index
                               ? Icons.pause
                               : Icons.skip_next),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            controller.all_stop();
-                            controller.switch_auto_mode();
-                          },
-                          icon: Icon(Icons.auto_mode),
-                          color: Colors.white,
-                          style: ButtonStyle(
-                            backgroundColor: controller.isAutoMode.value
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        controller.all_stop();
+                        controller.state.value == PageState.auto.index
+                            ? controller.stop_auto_mode()
+                            : controller.start_auto_mode();
+                      },
+                      icon: Icon(Icons.auto_mode),
+                      color: Colors.white,
+                      style: ButtonStyle(
+                        backgroundColor:
+                            controller.state.value == PageState.auto.index
                                 ? WidgetStateColor.resolveWith(
                                     (states) => Colors.white.withAlpha(30))
                                 : null,
-                          ),
-                        ),
-                        IconButton(
-                          //TODO: save page
-                          onPressed: () {
-                            controller.all_stop();
-                            Get.to(
-                              () => SaveLoadPage(isSave: true),
-                              binding: SaveLoadBinding(),
-                            );
-                          },
-                          icon: Icon(Icons.save),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                          //TODO: load page
-                          onPressed: () {
-                            controller.all_stop();
-                            Get.to(
-                              () => SaveLoadPage(isSave: false),
-                              binding: SaveLoadBinding(),
-                            );
-                          },
-                          icon: Icon(Icons.file_upload),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                          //TODO: volume control
-                          onPressed: () => controller.switch_mute(),
-                          icon: Icon(controller.isMute.value
-                              ? Icons.volume_off
-                              : Icons.volume_up),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                          //TODO: settings page
-                          onPressed: () {
-                            controller.all_stop();
-                            Get.to(
-                              () => SettingsPage(),
-                              binding: SettingsBinding(),
-                            );
-                          },
-                          icon: Icon(Icons.settings),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                          //return to home page
-                          onPressed: () {
-                            controller.all_stop();
-                            Get.offAll(() => MainPage());
-                          },
-                          icon: Icon(Icons.home),
-                          color: Colors.white,
-                        ),
-                        IconButton(
-                            onPressed: () =>
-                                controller.isHistoryMode.value = true,
-                            icon: Icon(
-                              Icons.history,
-                              color: Colors.white,
-                            )),
-                        IconButton(
-                          // TODO: hide/show dilaogue dock
-                          onPressed: () {
-                            controller.all_stop();
-                            controller.switch_hide_status();
-                          },
-                          icon: Icon(Icons.hide_image),
-                          color: Colors.white,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                )))));
+                    IconButton(
+                      //TODO: save page
+                      onPressed: () {
+                        controller.all_stop();
+                        Get.to(
+                          () => SaveLoadPage(isSave: true),
+                          binding: SaveLoadBinding(),
+                        );
+                      },
+                      icon: Icon(Icons.save),
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                      //TODO: load page
+                      onPressed: () {
+                        controller.all_stop();
+                        Get.to(
+                          () => SaveLoadPage(isSave: false),
+                          binding: SaveLoadBinding(),
+                        );
+                      },
+                      icon: Icon(Icons.file_upload),
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                      //TODO: volume control
+                      onPressed: () => controller.switch_mute(),
+                      icon: Icon(controller.isMute.value
+                          ? Icons.volume_off
+                          : Icons.volume_up),
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                      //TODO: settings page
+                      onPressed: () {
+                        controller.all_stop();
+                        Get.to(
+                          () => SettingsPage(),
+                          binding: SettingsBinding(),
+                        );
+                      },
+                      icon: Icon(Icons.settings),
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                      //return to home page
+                      onPressed: () {
+                        controller.all_stop();
+                        Get.offAll(() => MainPage());
+                      },
+                      icon: Icon(Icons.home),
+                      color: Colors.white,
+                    ),
+                    IconButton(
+                        onPressed: () =>
+                            controller.state.value = PageState.history.index,
+                        icon: Icon(
+                          Icons.history,
+                          color: Colors.white,
+                        )),
+                    IconButton(
+                      // TODO: hide/show dilaogue dock
+                      onPressed: () {
+                        controller.all_stop();
+                        controller.state.value == PageState.hiddenBar.index
+                            ? controller.stop_hiden_bar()
+                            : controller.start_hide_status();
+                      },
+                      icon: Icon(Icons.hide_image),
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ))));
   }
 }
 
@@ -502,7 +570,7 @@ class HistoryContainer extends StatelessWidget {
                   color: Colors.white,
                 ),
                 onPressed: () {
-                  controller.isHistoryMode.value = false;
+                  controller.state.value = PageState.main.index;
                 }),
             Text(
               "History",

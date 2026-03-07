@@ -1,6 +1,6 @@
 background (cg) : cg2.png
 
-Miku (smile) : Our malitary is injustice;what we have to overcome?
+Miku (smile) : `使用 map 时复杂度为 $O(n \sqrt n log n)$ ，换成 unordered_map 后复杂度近似为 $O(n \sqrt n)$，没有卡map复杂度。` 
 
 Goodbye future,I stayed in my memories.
 
