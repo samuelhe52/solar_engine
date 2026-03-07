@@ -101,10 +101,10 @@ class CGController extends GetxController {
       await next();
     } else if (currentScenario.value.type == CommandType.audio.index) {
       bgmPath = audioPath + currentScenario.value.resourcePath;
-      if (_gameEngine.gameAudio.trim().isNotEmpty) {
+      if (bgmPath.isNotEmpty) {
+        _gameEngine.setAudio = currentScenario.value.resourcePath;
         play_bgm(bgmPath);
       }
-      _gameEngine.setAudio = audioPath;
 
       await next();
     } else if (currentScenario.value.type == CommandType.jump.index) {
@@ -133,7 +133,7 @@ class CGController extends GetxController {
   void load_initial_scenario() {
     backgroundImagePath.value = imagePath + _gameEngine.gameBackground;
     bgmPath = audioPath + _gameEngine.gameAudio;
-    if (_gameEngine.gameAudio.trim().isNotEmpty) {
+    if (bgmPath.isNotEmpty) {
       play_bgm(bgmPath);
     }
   }
@@ -141,7 +141,7 @@ class CGController extends GetxController {
   Future<void> play_bgm(String bgmPath) async {
     await bgmPlayer.stop();
     // 可以设置为循环播放
-    bgmPlayer.setReleaseMode(ReleaseMode.loop);
+    await bgmPlayer.setReleaseMode(ReleaseMode.loop);
     await bgmPlayer.play(AssetSource(bgmPath),
         volume: isMute.value ? 0 : musicVolume.value / 100);
   }

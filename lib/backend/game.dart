@@ -13,7 +13,7 @@ enum CommandType { text, image, audio, cg, jump, branches, input, markdown }
 
 const characterPath = "assets/characters/";
 const imagePath = "assets/images/";
-const audioPath = "assets/audio/";
+const audioPath = "audio/";
 
 final logger = Logger('App');
 void setupLogging() {
